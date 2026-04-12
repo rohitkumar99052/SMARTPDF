@@ -30,6 +30,7 @@ import { saveAs } from 'file-saver';
 import * as docx from 'docx';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
+import pptxgen from "pptxgenjs";
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -317,6 +318,38 @@ export default function App() {
           const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
           resultBlob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           resultFileName = firstFile.name.replace('.pdf', '.xlsx');
+          break;
+        }
+
+        case 'pdf-to-powerpoint': {
+          console.log('Starting PDF to PowerPoint conversion...');
+          const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(firstFileBytes) });
+          const pdf = await loadingTask.promise;
+          const pres = new pptxgen();
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => (item as any).str).join(' ');
+            
+            const slide = pres.addSlide();
+            slide.addText(pageText, { 
+              x: 0.5, 
+              y: 0.5, 
+              w: '90%', 
+              h: '90%', 
+              fontSize: 12,
+              color: '363636',
+              align: pres.AlignH.left,
+              valign: pres.AlignV.top
+            });
+            console.log(`Added slide for page ${i}`);
+          }
+
+          const buffer = await pres.write({ outputType: 'blob' });
+          resultBlob = buffer as Blob;
+          resultFileName = firstFile.name.replace('.pdf', '.pptx');
+          console.log('PowerPoint presentation created successfully');
           break;
         }
 
