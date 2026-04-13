@@ -151,7 +151,10 @@ export default function App() {
       'no_history': 'No history found. Start using tools to see your activity!',
       'tool_name': 'Tool',
       'file_name': 'File Name',
-      'date': 'Date'
+      'date': 'Date',
+      'target_size': 'Target File Size (MB)',
+      'target_size_desc': 'Set desired size for the output file (optional)',
+      'mb': 'MB'
     },
     'Hindi': {
       'home': 'होम',
@@ -214,7 +217,10 @@ export default function App() {
       'no_history': 'कोई इतिहास नहीं मिला। अपनी गतिविधि देखने के लिए टूल्स का उपयोग शुरू करें!',
       'tool_name': 'टूल',
       'file_name': 'फ़ाइल का नाम',
-      'date': 'तारीख'
+      'date': 'तारीख',
+      'target_size': 'लक्ष्य फ़ाइल का आकार (MB)',
+      'target_size_desc': 'आउटपुट फ़ाइल के लिए वांछित आकार सेट करें (वैकल्पिक)',
+      'mb': 'MB'
     },
     'Spanish': {
       'home': 'Inicio',
@@ -414,7 +420,7 @@ export default function App() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number }>({});
+  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string }>({});
 
   const processPDF = async () => {
     if (files.length === 0 || !selectedTool) return;
@@ -856,6 +862,30 @@ export default function App() {
       }
 
       if (resultBlob && resultFileName) {
+        // Handle Target Size if specified
+        if (toolOptions.targetSize) {
+          const targetMB = parseFloat(toolOptions.targetSize);
+          const currentMB = resultBlob.size / (1024 * 1024);
+          
+          if (currentMB > targetMB) {
+            try {
+              const arrayBuffer = await resultBlob.arrayBuffer();
+              const pdfDoc = await PDFDocument.load(arrayBuffer);
+              // useObjectStreams: true helps reduce size by compressing objects
+              const optimizedBytes = await pdfDoc.save({ useObjectStreams: true });
+              resultBlob = new Blob([optimizedBytes], { type: 'application/pdf' });
+              
+              const newMB = resultBlob.size / (1024 * 1024);
+              console.log(`Optimized from ${currentMB.toFixed(2)}MB to ${newMB.toFixed(2)}MB (Target: ${targetMB}MB)`);
+              
+              if (newMB > targetMB) {
+                alert(`Note: We optimized the file as much as possible, but it is still ${newMB.toFixed(2)}MB, which is above your target of ${targetMB}MB.`);
+              }
+            } catch (e) {
+              console.error('Optimization failed:', e);
+            }
+          }
+        }
         saveAs(resultBlob, resultFileName);
       }
 
@@ -1499,36 +1529,57 @@ export default function App() {
                         </div>
 
                         {/* Tool Options */}
-                        {(selectedTool.id === 'protect-pdf' || selectedTool.id === 'watermark') && (
-                          <div className="mt-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-                            <h5 className="font-bold text-slate-700 flex items-center gap-2">
-                              <Zap className="w-4 h-4 text-yellow-500" /> Tool Options
-                            </h5>
-                            {selectedTool.id === 'protect-pdf' ? (
-                              <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Set Password</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Enter password..." 
-                                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
-                                  value={toolOptions.password || ''}
-                                  onChange={(e) => setToolOptions(prev => ({ ...prev, password: e.target.value }))}
-                                />
+                        <div className="mt-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                          <h5 className="font-bold text-slate-700 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-yellow-500" /> Tool Options
+                          </h5>
+                          
+                          {/* Target Size Option (Compulsory/Global) */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                              {t('target_size')} <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input 
+                                type="number" 
+                                placeholder="e.g. 2" 
+                                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none pr-12"
+                                value={toolOptions.targetSize || ''}
+                                onChange={(e) => setToolOptions(prev => ({ ...prev, targetSize: e.target.value }))}
+                              />
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                                MB
                               </div>
-                            ) : (
-                              <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Watermark Text</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="e.g. ROHITPDFHUB" 
-                                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
-                                  value={toolOptions.watermark || ''}
-                                  onChange={(e) => setToolOptions(prev => ({ ...prev, watermark: e.target.value }))}
-                                />
-                              </div>
-                            )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1 italic">{t('target_size_desc')}</p>
                           </div>
-                        )}
+
+                          {selectedTool.id === 'protect-pdf' && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Set Password</label>
+                              <input 
+                                type="text" 
+                                placeholder="Enter password..." 
+                                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
+                                value={toolOptions.password || ''}
+                                onChange={(e) => setToolOptions(prev => ({ ...prev, password: e.target.value }))}
+                              />
+                            </div>
+                          )}
+
+                          {selectedTool.id === 'watermark' && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Watermark Text</label>
+                              <input 
+                                type="text" 
+                                placeholder="e.g. ROHITPDFHUB" 
+                                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
+                                value={toolOptions.watermark || ''}
+                                onChange={(e) => setToolOptions(prev => ({ ...prev, watermark: e.target.value }))}
+                              />
+                            </div>
+                          )}
+                        </div>
 
                         <div className="pt-8 flex justify-center">
                           <button
