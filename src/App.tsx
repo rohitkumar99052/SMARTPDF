@@ -22,7 +22,9 @@ import {
   Check,
   Globe,
   ShieldCheck,
-  Zap
+  Zap,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PDFDocument, degrees } from 'pdf-lib';
@@ -65,6 +67,59 @@ import {
 import { getDocFromServer } from 'firebase/firestore';
 
 // Error Boundary Component (Removed due to lint issues)
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends (React.Component as any) {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+            <RotateCw className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Something went wrong</h2>
+          <p className="text-slate-500 mb-8 max-w-md mx-auto">We encountered an unexpected error while rendering this section. Please try reloading the page or go back to the home screen.</p>
+          <div className="flex gap-4 justify-center">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg active:scale-95"
+            >
+              Reload Page
+            </button>
+            <button 
+              onClick={() => { this.setState({ hasError: false }); window.location.href = '/'; }}
+              className="bg-slate-100 text-slate-700 px-8 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('All');
@@ -200,6 +255,18 @@ export default function App() {
       'tool_word-to-pdf_desc': 'उच्च सटीकता के साथ Word दस्तावेज़ों को PDF में बदलें।',
       'tool_pdf-to-word_title': 'PDF से Word',
       'tool_pdf-to-word_desc': 'PDF फ़ाइलों को संपादन योग्य Word दस्तावेज़ों में बदलें।',
+      'tool_jpg-to-pdf_title': 'JPG से PDF',
+      'tool_jpg-to-pdf_desc': 'JPG छवियों को सेकंडों में PDF में बदलें।',
+      'tool_pdf-to-jpg_title': 'PDF से JPG',
+      'tool_pdf-to-jpg_desc': 'प्रत्येक PDF पेज को JPG में बदलें।',
+      'tool_excel-to-pdf_title': 'Excel से PDF',
+      'tool_excel-to-pdf_desc': 'Excel स्प्रेडशीट को PDF में बदलें।',
+      'tool_pdf-to-excel_title': 'PDF से Excel',
+      'tool_pdf-to-excel_desc': 'PDF डेटा को Excel में बदलें।',
+      'tool_ppt-to-pdf_title': 'PPT से PDF',
+      'tool_ppt-to-pdf_desc': 'PowerPoint को PDF में बदलें।',
+      'tool_pdf-to-ppt_title': 'PDF से PPT',
+      'tool_pdf-to-ppt_desc': 'PDF को PowerPoint में बदलें।',
       'about_title': 'RohitPDFHub के बारे में',
       'help_title': 'सहायता और समर्थन',
       'contact_title': 'संपर्क करें',
@@ -245,9 +312,44 @@ export default function App() {
       'processing': 'Procesando...',
       'download_ready': '¡Tu archivo está listo!',
       'download_btn': 'Descargar ahora',
-      'back_btn': 'Volver a herramientas'
+      'back_btn': 'Volver a herramientas',
+      'tool_jpg-to-pdf_title': 'JPG a PDF',
+      'tool_jpg-to-pdf_desc': 'Convierte imágenes JPG a PDF en segundos.',
+      'tool_pdf-to-jpg_title': 'PDF a JPG',
+      'tool_pdf-to-jpg_desc': 'Convierte cada página de PDF a JPG.',
+      'tool_merge_title': 'Unir PDF',
+      'tool_merge_desc': 'Combina varios PDF en uno solo.',
+      'tool_compress_title': 'Comprimir PDF',
+      'tool_compress_desc': 'Reduce el tamaño de tu PDF.',
+      'tool_split_title': 'Dividir PDF',
+      'tool_split_desc': 'Divide un PDF en varias páginas.',
+      'tool_word-to-pdf_title': 'Word a PDF',
+      'tool_word-to-pdf_desc': 'Convierte Word a PDF.',
+      'tool_pdf-to-word_title': 'PDF a Word',
+      'tool_pdf-to-word_desc': 'Convierte PDF a Word.',
+      'tool_excel-to-pdf_title': 'Excel a PDF',
+      'tool_excel-to-pdf_desc': 'Convierte Excel a PDF.',
+      'tool_pdf-to-excel_title': 'PDF a Excel',
+      'tool_pdf-to-excel_desc': 'Convierte PDF a Excel.',
+      'tool_ppt-to-pdf_title': 'PPT a PDF',
+      'tool_ppt-to-pdf_desc': 'Convierte PowerPoint a PDF.',
+      'tool_pdf-to-ppt_title': 'PDF a PPT',
+      'tool_pdf-to-ppt_desc': 'Convierte PDF a PowerPoint.',
+      'my_history': 'Mi historial',
+      'no_history': 'No se encontró historial.',
+      'target_size': 'Tamaño de archivo objetivo (MB)',
+      'mb': 'MB'
     }
   };
+
+  const [notification, setNotification] = useState<{ message: string, type: 'info' | 'error' | 'success' } | null>(null);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const fetchHistory = useCallback(async () => {
     if (!user) return;
@@ -392,6 +494,10 @@ export default function App() {
       fetchAdminData();
     }
   }, [showAdminDashboard]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [selectedTool, showAdminDashboard]);
 
   const filteredTools = TOOLS.filter(tool => {
     const matchesCategory = activeCategory === 'All' || tool.category.includes(activeCategory);
@@ -879,7 +985,10 @@ export default function App() {
               console.log(`Optimized from ${currentMB.toFixed(2)}MB to ${newMB.toFixed(2)}MB (Target: ${targetMB}MB)`);
               
               if (newMB > targetMB) {
-                alert(`Note: We optimized the file as much as possible, but it is still ${newMB.toFixed(2)}MB, which is above your target of ${targetMB}MB.`);
+                setNotification({
+                  message: `Note: We optimized the file as much as possible, but it is still ${newMB.toFixed(2)}MB, which is above your target of ${targetMB}MB.`,
+                  type: 'info'
+                });
               }
             } catch (e) {
               console.error('Optimization failed:', e);
@@ -905,7 +1014,10 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error processing PDF:', error);
-      alert('An error occurred while processing the PDF. Please make sure the file is not corrupted or password protected.');
+      setNotification({
+        message: 'An error occurred while processing the PDF. Please make sure the file is not corrupted or password protected.',
+        type: 'error'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -963,15 +1075,38 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center bg-slate-100 rounded-full px-3 py-1.5 border border-slate-200">
+          <div className="hidden lg:flex items-center bg-slate-100 rounded-full px-3 py-1.5 border border-slate-200">
             <Search className="w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search tools..." 
+              placeholder={t('search_placeholder')} 
               className="bg-transparent border-none focus:ring-0 text-sm ml-2 w-40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          <div className="hidden sm:block relative group">
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-100 text-slate-600 font-bold transition-all">
+              <Languages className="w-4 h-4 text-red-500" />
+              <span className="text-xs uppercase">{currentLanguage.substring(0, 2)}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              {languages.map(lang => (
+                <button 
+                  key={lang.code}
+                  onClick={() => setCurrentLanguage(lang.name)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm transition-colors flex items-center justify-between",
+                    currentLanguage === lang.name ? "text-red-600 font-bold bg-red-50" : "text-slate-600"
+                  )}
+                >
+                  {lang.name}
+                  {currentLanguage === lang.name && <Check className="w-3 h-3" />}
+                </button>
+              ))}
+            </div>
           </div>
           
           <div className="relative">
@@ -1137,7 +1272,7 @@ export default function App() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -10 }}
-                            className="absolute right-full top-0 mr-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50"
+                            className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50"
                           >
                             {languages.map((lang) => (
                               <button
@@ -1165,8 +1300,35 @@ export default function App() {
         </div>
       </nav>
 
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -100 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-4"
+          >
+            <div className={cn(
+              "p-4 rounded-2xl shadow-2xl border flex items-center gap-3",
+              notification.type === 'error' ? "bg-red-50 border-red-100 text-red-800" :
+              notification.type === 'success' ? "bg-green-50 border-green-100 text-green-800" :
+              "bg-blue-50 border-blue-100 text-blue-800"
+            )}>
+              {notification.type === 'error' ? <AlertCircle className="w-5 h-5 flex-shrink-0" /> :
+               notification.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> :
+               <Info className="w-5 h-5 flex-shrink-0" />}
+              <p className="text-sm font-medium">{notification.message}</p>
+              <button onClick={() => setNotification(null)} className="ml-auto p-1 hover:bg-black/5 rounded-full transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <main className="max-w-7xl mx-auto px-4 py-12">
-        <AnimatePresence mode="wait">
+        <ErrorBoundary>
+          <AnimatePresence mode="wait">
           {showAdminDashboard ? (
             <motion.div
               key="admin"
@@ -1385,19 +1547,19 @@ export default function App() {
                   return (
                     <motion.div
                       key={tool.id}
-                      layoutId={tool.id}
                       onClick={() => setSelectedTool(tool)}
                       whileHover={{ y: -5 }}
                       animate={tool.featured ? {
                         borderColor: ["#f1f5f9", "#ef4444", "#f1f5f9"],
+                        scale: [1, 1.02, 1],
                         boxShadow: [
                           "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-                          "0 0 15px rgba(239, 68, 68, 0.2)",
+                          "0 0 20px rgba(239, 68, 68, 0.4)",
                           "0 1px 2px 0 rgb(0 0 0 / 0.05)"
                         ]
                       } : {}}
                       transition={tool.featured ? {
-                        duration: 2,
+                        duration: 1.5,
                         repeat: Infinity,
                         ease: "easeInOut"
                       } : {}}
@@ -1628,7 +1790,8 @@ export default function App() {
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
+          </AnimatePresence>
+        </ErrorBoundary>
       </main>
 
       {/* Modals */}
