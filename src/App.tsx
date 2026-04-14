@@ -982,110 +982,154 @@ export default function App() {
         }
 
         case 'word-to-pdf': {
-          console.log('Starting Word to PDF conversion...');
+          console.log('Starting Word to PDF conversion (Ultra-Stable Mode)...');
           
-          if (firstFile.name.toLowerCase().endsWith('.doc')) {
-            alert('Note: .doc files are older formats. For best results, please use .docx files.');
-          }
-
-          // Create a visible overlay for rendering
           const overlay = document.createElement('div');
           overlay.style.position = 'fixed';
           overlay.style.top = '0';
           overlay.style.left = '0';
           overlay.style.width = '100%';
           overlay.style.height = '100%';
-          overlay.style.backgroundColor = 'rgba(255,255,255,0.98)';
+          overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.98)';
           overlay.style.zIndex = '10000';
           overlay.style.display = 'flex';
           overlay.style.flexDirection = 'column';
           overlay.style.alignItems = 'center';
           overlay.style.overflowY = 'auto';
-          overlay.style.padding = '40px 0';
+          overlay.style.padding = '0';
           overlay.innerHTML = `
-            <div style="background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; margin-bottom: 30px; width: 400px;">
-              <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #ef4444; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
-              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 18px;">Converting Word to PDF</h2>
-              <p style="font-family: sans-serif; color: #64748b; font-size: 14px; margin-top: 5px;">Preserving your layout and tables...</p>
+            <div style="background: white; padding: 20px; text-align: center; width: 100%; position: sticky; top: 0; z-index: 101; border-bottom: 1px solid #eee;">
+              <div style="width: 30px; height: 30px; border: 3px solid #f1f5f9; border-top: 4px solid #ef4444; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 16px; font-weight: 700;">Converting Word to PDF</h2>
+              <p style="font-family: sans-serif; color: #64748b; font-size: 12px; margin-top: 2px;">Flattening layout and removing extra pages...</p>
               <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
             </div>
-            <div id="render-target" style="width: 794px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); padding: 0; min-height: 1123px;"></div>
+            <div id="render-target" style="width: 816px; background: white; color: black; box-sizing: border-box; position: relative; margin: 0 auto; min-height: 100px;"></div>
           `;
           document.body.appendChild(overlay);
           const renderTarget = overlay.querySelector('#render-target') as HTMLElement;
 
           try {
-            // Try high-fidelity rendering
-            try {
-              await renderAsync(firstFileBytes, renderTarget, undefined, {
-                inWrapper: false,
-                ignoreWidth: true,
-                ignoreHeight: false,
-                debug: false
-              });
-              
-              // Apply some CSS to the rendered content to ensure it fits
-              const docxElements = renderTarget.querySelectorAll('.docx-preview');
-              docxElements.forEach((el: any) => {
-                el.style.width = '100%';
-                el.style.padding = '20px';
-                el.style.boxSizing = 'border-box';
-              });
-              
-              // Ensure tables don't overflow
-              const tables = renderTarget.querySelectorAll('table');
-              tables.forEach((table: any) => {
-                table.style.width = '100%';
-                table.style.tableLayout = 'auto';
-                table.style.wordBreak = 'break-word';
-              });
-            } catch (renderErr) {
-              console.warn('docx-preview failed, falling back to mammoth', renderErr);
-              const { value: html } = await mammoth.convertToHtml({ arrayBuffer: firstFileBytes });
-              renderTarget.innerHTML = `<div style="padding: 50px; font-family: serif; line-height: 1.5;">${html}</div>`;
-            }
+            await renderAsync(firstFileBytes, renderTarget, undefined, {
+              inWrapper: false,
+              ignoreWidth: false,
+              ignoreHeight: false,
+              debug: false
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
-            // Wait for rendering and images
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            const docxPreview = renderTarget.querySelector('.docx-preview') as HTMLElement;
+            if (docxPreview) {
+              // Aggressive CSS Flattening
+              const style = document.createElement('style');
+              style.innerHTML = `
+                .docx-preview { 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  background: white !important; 
+                  width: 100% !important; 
+                  height: auto !important;
+                  min-height: auto !important;
+                  display: block !important;
+                }
+                .docx-preview > section, .docx-preview > div {
+                  margin: 0 !important;
+                  padding: 40px 50px !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  height: auto !important;
+                  min-height: auto !important;
+                  page-break-after: always !important;
+                  position: relative !important;
+                  display: block !important;
+                }
+                .docx-preview table { 
+                  border-collapse: collapse !important; 
+                  width: 100% !important; 
+                  table-layout: auto !important; 
+                  height: auto !important; 
+                  border: 1px solid #000 !important; 
+                  margin-bottom: 20px !important;
+                  position: relative !important;
+                  display: table !important;
+                }
+                .docx-preview tr { 
+                  height: auto !important; 
+                  display: table-row !important;
+                  page-break-inside: avoid !important; 
+                }
+                .docx-preview td, .docx-preview th { 
+                  border: 1px solid #000 !important; 
+                  padding: 10px !important; 
+                  height: auto !important; 
+                  display: table-cell !important;
+                  vertical-align: top !important;
+                  line-height: 1.5 !important;
+                  word-break: break-word !important;
+                  position: relative !important;
+                }
+                .docx-preview p { 
+                  margin: 0 0 10px 0 !important; 
+                  padding: 0 !important; 
+                  line-height: 1.5 !important;
+                  position: relative !important;
+                  display: block !important;
+                }
+                .docx-preview * { 
+                  position: relative !important; 
+                  box-sizing: border-box !important; 
+                  top: auto !important;
+                  left: auto !important;
+                  right: auto !important;
+                  bottom: auto !important;
+                  float: none !important;
+                }
+              `;
+              docxPreview.appendChild(style);
+
+              const allElements = docxPreview.querySelectorAll('*');
+              allElements.forEach((el: any) => {
+                const style = window.getComputedStyle(el);
+                if (style.position === 'absolute') {
+                  el.style.position = 'relative';
+                  el.style.top = 'auto';
+                  el.style.left = 'auto';
+                }
+              });
+            }
 
             const opt = {
-              margin: [10, 10, 10, 10],
+              margin: 0,
               filename: firstFile.name.split('.')[0] + '.pdf',
-              image: { type: 'jpeg' as const, quality: 0.98 },
+              image: { type: 'jpeg' as const, quality: 1.0 },
               html2canvas: { 
-                scale: 2, 
+                scale: 2,
                 useCORS: true,
-                letterRendering: true,
-                width: 794, // Fixed A4 width in pixels at 96 DPI
-                windowWidth: 794
+                letterRendering: false,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: 816,
+                windowWidth: 816
               },
               jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+              pagebreak: { mode: ['css', 'legacy'] }
             };
 
-            // Generate PDF
-            const pdfBlob = await (html2pdf() as any).from(renderTarget).set(opt).output('blob');
+            const pdfBlob = await (html2pdf() as any).from(docxPreview || renderTarget).set(opt).output('blob');
+            
+            if (pdfBlob.size < 5000) {
+              throw new Error('Generated PDF is too small');
+            }
+            
             resultBlob = pdfBlob;
             resultFileName = firstFile.name.split('.')[0] + '.pdf';
-            
-            if (resultBlob.size < 1000) throw new Error('Blank PDF detected');
           } catch (err) {
             console.error('Word to PDF error:', err);
-            // Final fallback
-            const { value: text } = await mammoth.extractRawText({ arrayBuffer: firstFileBytes });
-            const pdf = await PDFDocument.create();
-            const font = await pdf.embedFont('Helvetica');
-            const page = pdf.addPage();
-            const { height, width } = page.getSize();
-            const lines = text.split('\n');
-            let y = height - 50;
-            for (const line of lines.slice(0, 50)) {
-              if (y < 50) break;
-              page.drawText(line.substring(0, 100), { x: 50, y, size: 10, font });
-              y -= 15;
-            }
-            const bytes = await pdf.save();
-            resultBlob = new Blob([bytes], { type: 'application/pdf' });
+            const { value: html } = await mammoth.convertToHtml({ arrayBuffer: firstFileBytes });
+            renderTarget.innerHTML = `<div style="padding: 50px; color: black; background: white; font-family: sans-serif; line-height: 1.5;">${html}</div>`;
+            const pdfBlob = await (html2pdf() as any).from(renderTarget).output('blob');
+            resultBlob = pdfBlob;
             resultFileName = firstFile.name.split('.')[0] + '.pdf';
           } finally {
             document.body.removeChild(overlay);
@@ -1262,13 +1306,17 @@ export default function App() {
               }
             }
 
-            // 2. EXACT SIZE LOGIC: Truncate if larger (risky but requested for "exact"), Pad if smaller
+            // 2. EXACT SIZE LOGIC: Pad if smaller, NEVER truncate PDFs
             if (resultBlob.size > targetBytes) {
-              // If still larger after compression, we truncate to force the size
-              // Note: This might corrupt some file formats, but it fulfills the "exact size" request
-              const arrayBuffer = await resultBlob.arrayBuffer();
-              resultBlob = new Blob([arrayBuffer.slice(0, targetBytes)], { type: resultBlob.type });
-              console.log(`Truncated file to reach exact target size: ${targetBytes} bytes`);
+              if (resultBlob.type === 'application/pdf') {
+                // NEVER truncate a PDF as it breaks the file structure
+                console.warn('PDF is larger than target size, but truncation is skipped to prevent corruption.');
+              } else {
+                // For images, truncation is risky but requested for "exact"
+                const arrayBuffer = await resultBlob.arrayBuffer();
+                resultBlob = new Blob([arrayBuffer.slice(0, targetBytes)], { type: resultBlob.type });
+                console.log(`Truncated file to reach exact target size: ${targetBytes} bytes`);
+              }
             } else if (resultBlob.size < targetBytes) {
               // Pad to reach exact size
               const paddingSize = targetBytes - resultBlob.size;
