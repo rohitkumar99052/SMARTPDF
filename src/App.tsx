@@ -985,7 +985,7 @@ export default function App() {
         }
 
         case 'word-to-pdf': {
-          console.log('Starting Word to PDF conversion (Cloud API Engine)...');
+          console.log('Starting Word to PDF conversion (Local Pixel-Perfect Engine)...');
           
           const overlay = document.createElement('div');
           overlay.style.position = 'fixed';
@@ -1002,65 +1002,100 @@ export default function App() {
           overlay.innerHTML = `
             <div style="background: white; padding: 40px 60px; text-align: center; border-radius: 24px; box-shadow: 0 30px 70px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; max-width: 550px;">
               <div style="width: 56px; height: 56px; border: 6px solid #f1f5f9; border-top: 6px solid #ef4444; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin: 0 auto 24px;"></div>
-              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.03em;">Cloud Fidelity Engine</h2>
-              <p id="conversion-status" style="font-family: sans-serif; color: #64748b; font-size: 16px; margin-top: 12px; line-height: 1.6;">Connecting to LibreOffice Cloud API...</p>
+              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.03em;">Local Fidelity Engine</h2>
+              <p id="conversion-status" style="font-family: sans-serif; color: #64748b; font-size: 16px; margin-top: 12px; line-height: 1.6;">Rendering document locally for maximum privacy...</p>
               <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
             </div>
+            <div id="render-target" style="width: 816px; background: white; position: absolute; left: -9999px; top: 0;"></div>
           `;
           document.body.appendChild(overlay);
+          const renderTarget = overlay.querySelector('#render-target') as HTMLElement;
           const statusText = overlay.querySelector('#conversion-status') as HTMLElement;
 
           try {
-            statusText.innerText = "Uploading to conversion server...";
-            
-            const formData = new FormData();
-            formData.append('file', firstFile);
+            statusText.innerText = "Injecting metrics-compatible fonts...";
+            const fontStyle = document.createElement('style');
+            fontStyle.innerHTML = `
+              @import url('https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=block');
+              * { font-family: 'Arimo', 'Arial', sans-serif !important; }
+            `;
+            document.head.appendChild(fontStyle);
 
-            const response = await fetch('/api/convert/word-to-pdf', {
-              method: 'POST',
-              body: formData
+            await (document as any).fonts.ready;
+
+            statusText.innerText = "Reconstructing Word layout...";
+            await renderAsync(firstFileBytes, renderTarget, undefined, {
+              inWrapper: true,
+              ignoreWidth: false,
+              ignoreHeight: false,
             });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Cloud conversion failed');
-            }
-
-            statusText.innerText = "Downloading high-fidelity PDF...";
-            resultBlob = await response.blob();
-            resultFileName = firstFile.name.split('.')[0] + '.pdf';
-          } catch (err: any) {
-            console.error('Cloud API Error:', err);
-            statusText.innerText = "Cloud API failed. Using local fallback...";
             
-            // Fallback to local rendering if API fails or is not configured
-            const renderTarget = document.createElement('div');
-            renderTarget.style.width = '816px';
-            renderTarget.style.position = 'absolute';
-            renderTarget.style.left = '-9999px';
-            document.body.appendChild(renderTarget);
+            // Critical delay for complex document stabilization
+            await new Promise(resolve => setTimeout(resolve, 9000));
 
-            try {
-              await renderAsync(firstFileBytes, renderTarget, undefined, {
-                inWrapper: true,
-                ignoreWidth: false,
-                ignoreHeight: false,
-                breakPages: true
+            const docxWrapper = renderTarget.querySelector('.docx-wrapper') as HTMLElement;
+            if (!docxWrapper) throw new Error('Render failed');
+
+            statusText.innerText = "Optimizing layout and borders...";
+            
+            const style = document.createElement('style');
+            style.innerHTML = `
+              .docx-wrapper { background: white !important; padding: 0 !important; margin: 0 !important; }
+              .docx-wrapper section { 
+                background: white !important; 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                border: none !important;
+                position: relative !important;
+                padding: 20mm !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                box-sizing: border-box !important;
+              }
+              .docx-wrapper span { border: none !important; background: transparent !important; }
+              .docx-wrapper table { border-collapse: collapse !important; width: 100% !important; border: 1px solid #000 !important; }
+              .docx-wrapper td, .docx-wrapper th { border: 1px solid #000 !important; padding: 5px 8px !important; background-color: #ffffff !important; }
+              .docx-wrapper p { margin: 0 !important; line-height: 1.5 !important; }
+            `;
+            docxWrapper.appendChild(style);
+
+            const sections = docxWrapper.querySelectorAll('section');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const processTarget = sections.length > 0 ? Array.from(sections) : [docxWrapper];
+            
+            for (let i = 0; i < processTarget.length; i++) {
+              statusText.innerText = `Finalizing Page ${i + 1} of ${processTarget.length}...`;
+              const target = processTarget[i] as HTMLElement;
+              
+              const canvas = await html2canvas(target, {
+                scale: 3,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: target.offsetWidth,
+                height: target.offsetHeight
               });
               
-              await new Promise(resolve => setTimeout(resolve, 5000));
-              
-              const pdfBlob = await (html2pdf() as any).from(renderTarget).set({
-                margin: 15,
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { scale: 3, backgroundColor: '#ffffff' }
-              }).output('blob');
-              
-              resultBlob = pdfBlob;
-              resultFileName = firstFile.name.split('.')[0] + '.pdf';
-            } finally {
-              document.body.removeChild(renderTarget);
+              const imgData = canvas.toDataURL('image/jpeg', 1.0);
+              if (i > 0) pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
             }
+
+            resultBlob = pdf.output('blob');
+            resultFileName = firstFile.name.split('.')[0] + '.pdf';
+          } catch (err: any) {
+            console.error('Local Engine Error:', err);
+            statusText.innerText = "Local engine failed. Using basic recovery...";
+            const { value: html } = await mammoth.convertToHtml({ arrayBuffer: firstFileBytes });
+            renderTarget.innerHTML = `<div style="padding: 50px; background: white; font-family: sans-serif;">${html}</div>`;
+            const pdfBlob = await (html2pdf() as any).from(renderTarget).set({
+              margin: 15,
+              image: { type: 'jpeg', quality: 1.0 },
+              html2canvas: { scale: 2, backgroundColor: '#ffffff' }
+            }).output('blob');
+            resultBlob = pdfBlob;
+            resultFileName = firstFile.name.split('.')[0] + '.pdf';
           } finally {
             document.body.removeChild(overlay);
           }
