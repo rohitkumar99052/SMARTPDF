@@ -30,6 +30,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PDFDocument, degrees } from 'pdf-lib';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { saveAs } from 'file-saver';
 import * as docx from 'docx';
 import * as XLSX from 'xlsx';
@@ -982,7 +985,7 @@ export default function App() {
         }
 
         case 'word-to-pdf': {
-          console.log('Starting Word to PDF conversion (Ultra-Stable Mode)...');
+          console.log('Starting Word to PDF conversion (Pixel-Perfect Fidelity Mode)...');
           
           const overlay = document.createElement('div');
           overlay.style.position = 'fixed';
@@ -990,145 +993,141 @@ export default function App() {
           overlay.style.left = '0';
           overlay.style.width = '100%';
           overlay.style.height = '100%';
-          overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.98)';
+          overlay.style.backgroundColor = '#ffffff';
           overlay.style.zIndex = '10000';
           overlay.style.display = 'flex';
           overlay.style.flexDirection = 'column';
           overlay.style.alignItems = 'center';
-          overlay.style.overflowY = 'auto';
-          overlay.style.padding = '0';
+          overlay.style.justifyContent = 'center';
           overlay.innerHTML = `
-            <div style="background: white; padding: 20px; text-align: center; width: 100%; position: sticky; top: 0; z-index: 101; border-bottom: 1px solid #eee;">
-              <div style="width: 30px; height: 30px; border: 3px solid #f1f5f9; border-top: 4px solid #ef4444; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
-              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 16px; font-weight: 700;">Converting Word to PDF</h2>
-              <p style="font-family: sans-serif; color: #64748b; font-size: 12px; margin-top: 2px;">Flattening layout and removing extra pages...</p>
+            <div style="background: white; padding: 40px 60px; text-align: center; border-radius: 24px; box-shadow: 0 30px 70px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; max-width: 550px;">
+              <div style="width: 56px; height: 56px; border: 6px solid #f1f5f9; border-top: 6px solid #ef4444; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin: 0 auto 24px;"></div>
+              <h2 style="font-family: sans-serif; color: #1e293b; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.03em;">Pixel-Perfect Fidelity Engine</h2>
+              <p id="conversion-status" style="font-family: sans-serif; color: #64748b; font-size: 16px; margin-top: 12px; line-height: 1.6;">Synchronizing font metrics and layout...</p>
               <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
             </div>
-            <div id="render-target" style="width: 816px; background: white; color: black; box-sizing: border-box; position: relative; margin: 0 auto; min-height: 100px;"></div>
+            <div id="render-target" style="width: 816px; background: white; position: absolute; left: -9999px; top: 0;"></div>
           `;
           document.body.appendChild(overlay);
           const renderTarget = overlay.querySelector('#render-target') as HTMLElement;
+          const statusText = overlay.querySelector('#conversion-status') as HTMLElement;
 
           try {
+            statusText.innerText = "Injecting metrics-compatible fonts...";
+            // Force load fonts that match Word's metrics
+            const fontStyle = document.createElement('style');
+            fontStyle.innerHTML = `
+              @import url('https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=block');
+              * { font-family: 'Arimo', 'Arial', sans-serif !important; }
+              .docx-wrapper p, .docx-wrapper span { font-family: inherit !important; }
+            `;
+            document.head.appendChild(fontStyle);
+
+            // Wait for fonts to be fully ready
+            await (document as any).fonts.ready;
+
+            statusText.innerText = "Reconstructing Word layout...";
             await renderAsync(firstFileBytes, renderTarget, undefined, {
-              inWrapper: false,
+              inWrapper: true,
               ignoreWidth: false,
               ignoreHeight: false,
-              debug: false
+              breakPages: true
             });
             
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // Critical delay for complex document stabilization
+            await new Promise(resolve => setTimeout(resolve, 10000));
 
-            const docxPreview = renderTarget.querySelector('.docx-preview') as HTMLElement;
-            if (docxPreview) {
-              // Aggressive CSS Flattening
-              const style = document.createElement('style');
-              style.innerHTML = `
-                .docx-preview { 
-                  padding: 0 !important; 
-                  margin: 0 !important; 
-                  background: white !important; 
-                  width: 100% !important; 
-                  height: auto !important;
-                  min-height: auto !important;
-                  display: block !important;
-                }
-                .docx-preview > section, .docx-preview > div {
-                  margin: 0 !important;
-                  padding: 40px 50px !important;
-                  box-shadow: none !important;
-                  border: none !important;
-                  height: auto !important;
-                  min-height: auto !important;
-                  page-break-after: always !important;
-                  position: relative !important;
-                  display: block !important;
-                }
-                .docx-preview table { 
-                  border-collapse: collapse !important; 
-                  width: 100% !important; 
-                  table-layout: auto !important; 
-                  height: auto !important; 
-                  border: 1px solid #000 !important; 
-                  margin-bottom: 20px !important;
-                  position: relative !important;
-                  display: table !important;
-                }
-                .docx-preview tr { 
-                  height: auto !important; 
-                  display: table-row !important;
-                  page-break-inside: avoid !important; 
-                }
-                .docx-preview td, .docx-preview th { 
-                  border: 1px solid #000 !important; 
-                  padding: 10px !important; 
-                  height: auto !important; 
-                  display: table-cell !important;
-                  vertical-align: top !important;
-                  line-height: 1.5 !important;
-                  word-break: break-word !important;
-                  position: relative !important;
-                }
-                .docx-preview p { 
-                  margin: 0 0 10px 0 !important; 
-                  padding: 0 !important; 
-                  line-height: 1.5 !important;
-                  position: relative !important;
-                  display: block !important;
-                }
-                .docx-preview * { 
-                  position: relative !important; 
-                  box-sizing: border-box !important; 
-                  top: auto !important;
-                  left: auto !important;
-                  right: auto !important;
-                  bottom: auto !important;
-                  float: none !important;
-                }
-              `;
-              docxPreview.appendChild(style);
+            const docxWrapper = renderTarget.querySelector('.docx-wrapper') as HTMLElement;
+            if (!docxWrapper) throw new Error('Render failed');
 
-              const allElements = docxPreview.querySelectorAll('*');
-              allElements.forEach((el: any) => {
-                const style = window.getComputedStyle(el);
-                if (style.position === 'absolute') {
-                  el.style.position = 'relative';
-                  el.style.top = 'auto';
-                  el.style.left = 'auto';
-                }
-              });
-            }
+            statusText.innerText = "Normalizing table structures and borders...";
+            
+            // SURGICAL CSS: Fixes "Strike-through" lines and table artifacts
+            const style = document.createElement('style');
+            style.innerHTML = `
+              .docx-wrapper { background: white !important; padding: 0 !important; margin: 0 !important; }
+              .docx-wrapper section { 
+                background: white !important; 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                border: none !important;
+                position: relative !important;
+                padding: 20mm !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                box-sizing: border-box !important;
+              }
+              /* Kill the artifacts caused by docx-preview's span borders */
+              .docx-wrapper span { 
+                border: none !important; 
+                background: transparent !important;
+                text-decoration: none !important;
+              }
+              .docx-wrapper .docx-underline { text-decoration: underline !important; }
+              
+              /* Table Fidelity Fix */
+              .docx-wrapper table { 
+                border-collapse: collapse !important; 
+                width: 100% !important; 
+                border: 1px solid #000 !important;
+                table-layout: fixed !important;
+              }
+              .docx-wrapper td, .docx-wrapper th { 
+                border: 1px solid #000 !important; 
+                padding: 5px 8px !important; 
+                background-color: #ffffff !important;
+                vertical-align: top !important;
+                overflow: visible !important;
+              }
+              /* Prevent text compression */
+              .docx-wrapper p { 
+                margin: 0 !important; 
+                line-height: 1.5 !important;
+                white-space: pre-wrap !important;
+              }
+            `;
+            docxWrapper.appendChild(style);
 
-            const opt = {
-              margin: 0,
-              filename: firstFile.name.split('.')[0] + '.pdf',
-              image: { type: 'jpeg' as const, quality: 1.0 },
-              html2canvas: { 
-                scale: 2,
+            const sections = docxWrapper.querySelectorAll('section');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const processTarget = sections.length > 0 ? Array.from(sections) : [docxWrapper];
+            
+            for (let i = 0; i < processTarget.length; i++) {
+              statusText.innerText = `Capturing Page ${i + 1} of ${processTarget.length} (Ultra-Res)...`;
+              const target = processTarget[i] as HTMLElement;
+              
+              const canvas = await html2canvas(target, {
+                scale: 4, // Maximum resolution for pixel-perfect results
                 useCORS: true,
-                letterRendering: false,
+                allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                width: 816,
-                windowWidth: 816
-              },
-              jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-              pagebreak: { mode: ['css', 'legacy'] }
-            };
-
-            const pdfBlob = await (html2pdf() as any).from(docxPreview || renderTarget).set(opt).output('blob');
-            
-            if (pdfBlob.size < 5000) {
-              throw new Error('Generated PDF is too small');
+                width: target.offsetWidth,
+                height: target.offsetHeight
+              });
+              
+              const imgData = canvas.toDataURL('image/jpeg', 1.0);
+              if (i > 0) pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
             }
-            
-            resultBlob = pdfBlob;
+
+            resultBlob = pdf.output('blob');
             resultFileName = firstFile.name.split('.')[0] + '.pdf';
           } catch (err) {
-            console.error('Word to PDF error:', err);
+            console.error('Pixel-Perfect Fidelity Error:', err);
+            statusText.innerText = "Using high-fidelity fallback...";
             const { value: html } = await mammoth.convertToHtml({ arrayBuffer: firstFileBytes });
-            renderTarget.innerHTML = `<div style="padding: 50px; color: black; background: white; font-family: sans-serif; line-height: 1.5;">${html}</div>`;
-            const pdfBlob = await (html2pdf() as any).from(renderTarget).output('blob');
+            renderTarget.innerHTML = `
+              <div style="padding: 50px; background: white; color: black; font-family: 'Arimo', sans-serif; font-size: 11pt; line-height: 1.6;">
+                ${html}
+              </div>
+            `;
+            const pdfBlob = await (html2pdf() as any).from(renderTarget).set({
+              margin: 15,
+              image: { type: 'jpeg', quality: 1.0 },
+              html2canvas: { scale: 4, backgroundColor: '#ffffff' }
+            }).output('blob');
             resultBlob = pdfBlob;
             resultFileName = firstFile.name.split('.')[0] + '.pdf';
           } finally {
