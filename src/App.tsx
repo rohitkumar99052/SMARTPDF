@@ -109,6 +109,7 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showManageUserModal, setShowManageUserModal] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedUserHistory, setSelectedUserHistory] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
@@ -192,7 +193,7 @@ export default function App() {
       'email_label': 'Email',
       'message_label': 'Message',
       'send_btn': 'Send Message',
-      'footer_text': 'The PDF software trusted by millions of users. RohitPDFHub is your number one web app for editing PDF with ease.',
+      'footer_text': 'The PDF software trusted by users worldwide. RohitPDFHub is your number one web app for editing PDF with ease.',
       'got_it': 'Got it!',
       'close': 'Close',
       'faq_title': 'Frequently Asked Questions',
@@ -293,7 +294,7 @@ export default function App() {
       'email_label': 'ईमेल',
       'message_label': 'संदेश',
       'send_btn': 'संदेश भेजें',
-      'footer_text': 'लाखों उपयोगकर्ताओं द्वारा भरोसा किया गया PDF सॉफ़्टवेयर। RohitPDFHub आसानी से PDF संपादित करने के लिए आपका नंबर एक वेब ऐप है।',
+      'footer_text': 'दुनिया भर के उपयोगकर्ताओं द्वारा भरोसा किया गया PDF सॉफ़्टवेयर। RohitPDFHub आसानी से PDF संपादित करने के लिए आपका नंबर एक वेब ऐप है।',
       'got_it': 'समझ गया!',
       'close': 'बंद करें',
       'faq_title': 'अक्सर पूछे जाने वाले प्रश्न',
@@ -2158,7 +2159,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               <div className="bg-red-600 p-8 text-white">
                 <div className="flex justify-between items-start">
@@ -2172,21 +2173,30 @@ export default function App() {
                 </div>
               </div>
               <div className="p-8 space-y-6 text-slate-600 leading-relaxed">
-                <p>
-                  <strong>RohitPDFHub</strong> is a premier web-based PDF management platform designed to provide users with a seamless, efficient, and completely free experience for all their document needs.
-                </p>
+                <section>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Our Story</h3>
+                  <p>
+                    RohitPDFHub started with a simple idea: document management should be accessible, fast, and free for everyone. We noticed that most PDF tools were either too expensive or too complicated, so we built a platform that combines power with simplicity.
+                  </p>
+                </section>
+                <section>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Our Mission</h3>
+                  <p>
+                    To democratize document management by providing high-quality tools that are accessible to everyone, everywhere. We aim to be the most user-friendly PDF platform on the web.
+                  </p>
+                </section>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                   <div className="space-y-2">
                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-red-500" /> {t('our_mission')}
+                      <Globe className="w-4 h-4 text-red-500" /> Global Access
                     </h4>
-                    <p className="text-sm">To democratize document management by providing high-quality tools that are accessible to everyone, everywhere.</p>
+                    <p className="text-sm">Available in multiple languages to serve users across the globe.</p>
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-red-500" /> {t('privacy_first')}
                     </h4>
-                    <p className="text-sm">We believe in absolute privacy. Your files are processed locally in your browser whenever possible, ensuring your data never leaves your device.</p>
+                    <p className="text-sm">We believe in absolute privacy. Your files are processed locally in your browser whenever possible.</p>
                   </div>
                 </div>
                 <div className="pt-6 border-t border-slate-100 flex justify-end">
@@ -2195,6 +2205,84 @@ export default function App() {
                     className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-900 transition-all active:scale-95"
                   >
                     {t('got_it')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showLegalModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLegalModal(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] overflow-y-auto"
+            >
+              <div className="bg-slate-800 p-8 text-white">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">{showLegalModal}</h2>
+                  <button onClick={() => setShowLegalModal(null)} className="p-2 hover:bg-white/20 rounded-full">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-8 space-y-6 text-slate-600">
+                {showLegalModal === 'Privacy Policy' && (
+                  <div className="space-y-4">
+                    <p>At RohitPDFHub, we take your privacy seriously. We do not store your uploaded files on our servers longer than necessary for processing.</p>
+                    <h4 className="font-bold text-slate-800">Data Collection</h4>
+                    <p>We only collect minimal data required to provide our services, such as your email if you create an account.</p>
+                    <h4 className="font-bold text-slate-800">Cookies</h4>
+                    <p>We use cookies to remember your preferences and improve your experience.</p>
+                  </div>
+                )}
+                {showLegalModal === 'Terms of Service' && (
+                  <div className="space-y-4">
+                    <p>By using RohitPDFHub, you agree to these terms. Our tools are provided "as is" without any warranties.</p>
+                    <h4 className="font-bold text-slate-800">Usage Limits</h4>
+                    <p>You may use our tools for personal or professional use. Please do not attempt to scrape or abuse our services.</p>
+                  </div>
+                )}
+                {showLegalModal === 'Cookie Policy' && (
+                  <div className="space-y-4">
+                    <p>We use essential cookies to make our site work. We also use analytics cookies to understand how you use our platform.</p>
+                  </div>
+                )}
+                {showLegalModal === 'Security' && (
+                  <div className="space-y-4">
+                    <p>We use industry-standard encryption to protect your data. Files are processed in secure environments and deleted automatically.</p>
+                  </div>
+                )}
+                {showLegalModal === 'Careers' && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-slate-800">Join Our Team</h3>
+                    <p>We are always looking for passionate people to help us build the future of document management.</p>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <p className="font-bold text-slate-800">Current Openings:</p>
+                      <ul className="list-disc list-inside mt-2 text-sm space-y-1">
+                        <li>Frontend Developer (React)</li>
+                        <li>UI/UX Designer</li>
+                        <li>Content Strategist</li>
+                      </ul>
+                    </div>
+                    <p className="text-sm">Interested? Send your resume to <span className="text-blue-600 font-bold">careers@rohitpdfhub.com</span></p>
+                  </div>
+                )}
+                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                  <button 
+                    onClick={() => setShowLegalModal(null)}
+                    className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-900"
+                  >
+                    Close
                   </button>
                 </div>
               </div>
@@ -2920,10 +3008,10 @@ export default function App() {
           <div>
             <h4 className="text-white font-bold mb-6 uppercase text-xs tracking-widest">Legal</h4>
             <ul className="space-y-3 text-sm">
-              <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
-              <li><button className="hover:text-white transition-colors">Terms of Service</button></li>
-              <li><button className="hover:text-white transition-colors">Cookie Policy</button></li>
-              <li><button className="hover:text-white transition-colors">Security</button></li>
+              <li><button onClick={() => setShowLegalModal('Privacy Policy')} className="hover:text-white transition-colors">Privacy Policy</button></li>
+              <li><button onClick={() => setShowLegalModal('Terms of Service')} className="hover:text-white transition-colors">Terms of Service</button></li>
+              <li><button onClick={() => setShowLegalModal('Cookie Policy')} className="hover:text-white transition-colors">Cookie Policy</button></li>
+              <li><button onClick={() => setShowLegalModal('Security')} className="hover:text-white transition-colors">Security</button></li>
             </ul>
           </div>
 
@@ -2932,8 +3020,8 @@ export default function App() {
             <ul className="space-y-3 text-sm">
               <li><button onClick={() => setShowAboutModal(true)} className="hover:text-white transition-colors">About Us</button></li>
               <li><button onClick={() => setShowContactModal(true)} className="hover:text-white transition-colors">Contact Us</button></li>
-              <li><button className="hover:text-white transition-colors">Our Story</button></li>
-              <li><button className="hover:text-white transition-colors">Careers</button></li>
+              <li><button onClick={() => setShowAboutModal(true)} className="hover:text-white transition-colors">Our Story</button></li>
+              <li><button onClick={() => setShowLegalModal('Careers')} className="hover:text-white transition-colors">Careers</button></li>
             </ul>
           </div>
         </div>
