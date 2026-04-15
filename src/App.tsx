@@ -732,7 +732,7 @@ export default function App() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string, sizeUnit?: 'MB' | 'KB' }>({ sizeUnit: 'MB' });
+  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string, sizeUnit?: 'MB' | 'KB', splitRange?: string }>({ sizeUnit: 'MB' });
 
   const processPDF = async () => {
     if (files.length === 0 || !selectedTool) return;
@@ -805,13 +805,77 @@ export default function App() {
         }
 
         case 'split': {
-          const pdf = await PDFDocument.load(firstFileBytes);
-          const splitPdf = await PDFDocument.create();
-          const [firstPage] = await splitPdf.copyPages(pdf, [0]);
-          splitPdf.addPage(firstPage);
-          const bytes = await splitPdf.save();
-          resultBlob = new Blob([bytes], { type: 'application/pdf' });
-          resultFileName = `split_page1_${firstFile.name}`;
+          console.log('Split PDF tool selected');
+          try {
+            const pdf = await PDFDocument.load(firstFileBytes);
+            const numPages = pdf.getPageCount();
+            console.log(`PDF loaded successfully. Total pages: ${numPages}`);
+            const rangeStr = toolOptions.splitRange?.trim();
+
+            if (rangeStr) {
+              console.log(`Splitting with range: ${rangeStr}`);
+              // Extract specific pages/ranges into a single new PDF
+              const splitPdf = await PDFDocument.create();
+              const pagesToExtract: number[] = [];
+              
+              const parts = rangeStr.split(',');
+              for (const part of parts) {
+                if (part.includes('-')) {
+                  const rangeParts = part.split('-');
+                  if (rangeParts.length === 2) {
+                    const start = parseInt(rangeParts[0].trim());
+                    const end = parseInt(rangeParts[1].trim());
+                    if (!isNaN(start) && !isNaN(end)) {
+                      for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+                        if (i > 0 && i <= numPages) pagesToExtract.push(i - 1);
+                      }
+                    }
+                  }
+                } else {
+                  const pageNum = parseInt(part.trim());
+                  if (!isNaN(pageNum) && pageNum > 0 && pageNum <= numPages) {
+                    pagesToExtract.push(pageNum - 1);
+                  }
+                }
+              }
+
+              // Remove duplicates and sort
+              const uniquePages = Array.from(new Set(pagesToExtract)).sort((a, b) => a - b);
+
+              if (uniquePages.length === 0) {
+                alert(`Invalid page range. Please enter pages between 1 and ${numPages}.`);
+                return;
+              }
+
+              console.log(`Extracting ${uniquePages.length} pages:`, uniquePages);
+              const copiedPages = await splitPdf.copyPages(pdf, uniquePages);
+              copiedPages.forEach(p => splitPdf.addPage(p));
+              
+              const bytes = await splitPdf.save();
+              resultBlob = new Blob([bytes], { type: 'application/pdf' });
+              resultFileName = `extracted_${firstFile.name}`;
+            } else {
+              console.log('No range specified. Splitting all pages into a ZIP file...');
+              // Split every page into its own PDF and bundle in ZIP
+              const zip = new JSZip();
+              const folderName = firstFile.name.replace('.pdf', '_split');
+              
+              for (let i = 0; i < numPages; i++) {
+                const singlePdf = await PDFDocument.create();
+                const [page] = await singlePdf.copyPages(pdf, [i]);
+                singlePdf.addPage(page);
+                const bytes = await singlePdf.save();
+                zip.file(`page_${i + 1}.pdf`, bytes);
+              }
+              
+              resultBlob = await zip.generateAsync({ type: 'blob' });
+              resultFileName = `${folderName}.zip`;
+            }
+          } catch (err: any) {
+            console.error('Split PDF error:', err);
+            alert(`Failed to split PDF: ${err.message || 'Unknown error'}`);
+            return;
+          }
           break;
         }
 
@@ -2203,6 +2267,20 @@ export default function App() {
                                 value={toolOptions.password || ''}
                                 onChange={(e) => setToolOptions(prev => ({ ...prev, password: e.target.value }))}
                               />
+                            </div>
+                          )}
+
+                          {selectedTool.id === 'split' && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Split Range (e.g. 1-3, 5, 8-10) or leave empty for all pages</label>
+                              <input 
+                                type="text" 
+                                placeholder="e.g. 1-3, 5" 
+                                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
+                                value={toolOptions.splitRange || ''}
+                                onChange={(e) => setToolOptions(prev => ({ ...prev, splitRange: e.target.value }))}
+                              />
+                              <p className="text-[10px] text-slate-400 mt-1 italic">Leave empty to split every page into a separate file (ZIP).</p>
                             </div>
                           )}
 
