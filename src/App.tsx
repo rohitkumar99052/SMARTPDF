@@ -41,6 +41,7 @@ import pptxgen from "pptxgenjs";
 import mammoth from "mammoth";
 import html2pdf from 'html2pdf.js';
 import { renderAsync } from 'docx-preview';
+import JSZip from 'jszip';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -824,9 +825,9 @@ export default function App() {
         }
 
         case 'compress': {
-          const pdf = await PDFDocument.load(firstFileBytes);
-          const bytes = await pdf.save({ useObjectStreams: true });
-          resultBlob = new Blob([bytes], { type: 'application/pdf' });
+          // For PDF compression, we'll handle it in the global target size logic 
+          // to avoid double processing and ensure the target size is respected.
+          resultBlob = new Blob([firstFileBytes], { type: 'application/pdf' });
           resultFileName = `compressed_${firstFile.name}`;
           break;
         }
@@ -905,17 +906,42 @@ export default function App() {
         case 'pdf-to-jpg': {
           const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(firstFileBytes) });
           const pdf = await loadingTask.promise;
-          const page = await pdf.getPage(1);
-          const viewport = page.getViewport({ scale: 1.5 });
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
-          const dataUrl = canvas.toDataURL('image/jpeg');
-          const res = await fetch(dataUrl);
-          resultBlob = await res.blob();
-          resultFileName = firstFile.name.replace('.pdf', '.jpg');
+          const numPages = pdf.numPages;
+          
+          if (numPages === 1) {
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const res = await fetch(dataUrl);
+            resultBlob = await res.blob();
+            resultFileName = firstFile.name.replace('.pdf', '.jpg');
+          } else {
+            const zip = new JSZip();
+            const folderName = firstFile.name.replace('.pdf', '_images');
+            const imgFolder = zip.folder(folderName);
+            
+            for (let i = 1; i <= numPages; i++) {
+              const page = await pdf.getPage(i);
+              const viewport = page.getViewport({ scale: 2.0 });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+              
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+              const base64Data = dataUrl.split(',')[1];
+              imgFolder?.file(`page_${i}.jpg`, base64Data, { base64: true });
+            }
+            
+            resultBlob = await zip.generateAsync({ type: 'blob' });
+            resultFileName = `${folderName}.zip`;
+          }
           break;
         }
 
@@ -1176,9 +1202,10 @@ export default function App() {
           canvas.height = img.height;
           ctx?.drawImage(img, 0, 0);
 
-          // Initial high quality
+          // If no target size, use a standard 0.7 quality for compression
+          const quality = toolOptions.targetSize ? 0.95 : 0.7;
           const blob = await new Promise<Blob>((resolve) => {
-            canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.9);
+            canvas.toBlob((b) => resolve(b!), 'image/jpeg', quality);
           });
 
           resultBlob = blob;
@@ -1209,14 +1236,16 @@ export default function App() {
 
       if (resultBlob && resultFileName) {
         // Handle Target Size if specified
-        if (toolOptions.targetSize) {
+        if (toolOptions.targetSize && parseFloat(toolOptions.targetSize) > 0) {
           const size = parseFloat(toolOptions.targetSize);
           const unit = toolOptions.sizeUnit || 'MB';
           const targetBytes = Math.floor(unit === 'MB' ? size * 1024 * 1024 : size * 1024);
           
+          console.log(`Targeting exact size: ${targetBytes} bytes (${size} ${unit})`);
+
           try {
-            // 1. Try to compress based on file type
-            if (resultBlob.type.includes('image/jpeg') || selectedTool.id === 'compress-jpg') {
+            // 1. Aggressive Compression for Images
+            if (resultBlob.type.includes('image') || selectedTool.id === 'compress-jpg' || selectedTool.id === 'jpg-to-pdf') {
               const img = new Image();
               const reader = new FileReader();
               const dataUrl = await new Promise<string>((resolve) => {
@@ -1231,26 +1260,30 @@ export default function App() {
 
               let bestBlob = resultBlob!;
               let found = false;
-              const scales = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
+              
+              // More granular scales for better accuracy
+              const scales = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
               
               for (const currentScale of scales) {
-                if (found) break;
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                canvas.width = Math.floor(img.width * currentScale);
-                canvas.height = Math.floor(img.height * currentScale);
+                canvas.width = Math.max(1, Math.floor(img.width * currentScale));
+                canvas.height = Math.max(1, Math.floor(img.height * currentScale));
                 if (ctx) {
                   ctx.imageSmoothingEnabled = true;
                   ctx.imageSmoothingQuality = 'high';
                   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 }
-                let minQ = 0.1;
-                let maxQ = 0.98;
-                for (let i = 0; i < 7; i++) {
+                
+                // Binary search for quality
+                let minQ = 0.01;
+                let maxQ = 0.99;
+                for (let i = 0; i < 10; i++) { // More iterations for precision
                   const midQ = (minQ + maxQ) / 2;
                   const tempBlob = await new Promise<Blob>((resolve) => {
                     canvas.toBlob((b) => resolve(b!), 'image/jpeg', midQ);
                   });
+                  
                   if (tempBlob.size <= targetBytes) {
                     bestBlob = tempBlob;
                     minQ = midQ;
@@ -1259,38 +1292,119 @@ export default function App() {
                     maxQ = midQ;
                   }
                 }
-                if (found) break;
+                if (found && bestBlob.size > targetBytes * 0.9) break; // Close enough
               }
               resultBlob = bestBlob;
-            } else if (resultBlob.type === 'application/pdf') {
-              if (resultBlob.size > targetBytes) {
-                const arrayBuffer = await resultBlob.arrayBuffer();
-                const pdfDoc = await PDFDocument.load(arrayBuffer);
-                const optimizedBytes = await pdfDoc.save({ useObjectStreams: true });
-                resultBlob = new Blob([optimizedBytes], { type: 'application/pdf' });
+            } 
+            
+            // 2. PDF Compression (Improved & Aggressive)
+            else if (resultBlob.type === 'application/pdf') {
+              const arrayBuffer = await resultBlob.arrayBuffer();
+              let pdfDoc = await PDFDocument.load(arrayBuffer);
+              
+              // Standard Optimization first
+              pdfDoc.setTitle('');
+              pdfDoc.setAuthor('');
+              pdfDoc.setSubject('');
+              pdfDoc.setKeywords([]);
+              pdfDoc.setProducer('');
+              pdfDoc.setCreator('');
+              
+              let optimizedBytes = await pdfDoc.save({ 
+                useObjectStreams: true,
+                addDefaultPage: false,
+                updateFieldAppearances: false
+              });
+              
+              let currentBlob = new Blob([optimizedBytes], { type: 'application/pdf' });
+
+              // AGGRESSIVE RASTERIZATION if still too large
+              if (currentBlob.size > targetBytes) {
+                console.log(`PDF still too large (${currentBlob.size} bytes), starting aggressive rasterization to reach ${targetBytes} bytes...`);
+                try {
+                  const loadingTask = pdfjsLib.getDocument({ data: optimizedBytes });
+                  const pdf = await loadingTask.promise;
+                  const numPages = pdf.numPages;
+                  
+                  let bestRasterizedBytes = optimizedBytes;
+                  let foundAggressive = false;
+
+                  // Try different scales and qualities
+                  const rasterConfigs = [
+                    { scale: 1.2, quality: 0.5 },
+                    { scale: 0.8, quality: 0.4 },
+                    { scale: 0.5, quality: 0.3 },
+                    { scale: 0.3, quality: 0.2 },
+                    { scale: 0.2, quality: 0.1 } // Super low
+                  ];
+
+                  for (const config of rasterConfigs) {
+                    if (foundAggressive) break;
+                    
+                    console.log(`Trying rasterization with scale ${config.scale} and quality ${config.quality}...`);
+                    const tempPdf = await PDFDocument.create();
+                    
+                    for (let i = 1; i <= numPages; i++) {
+                      const page = await pdf.getPage(i);
+                      const viewport = page.getViewport({ scale: config.scale });
+                      const canvas = document.createElement('canvas');
+                      const context = canvas.getContext('2d');
+                      canvas.height = viewport.height;
+                      canvas.width = viewport.width;
+                      if (context) {
+                        await page.render({ canvasContext: context, viewport, canvas: canvas as any }).promise;
+                        const imgData = canvas.toDataURL('image/jpeg', config.quality);
+                        const base64 = imgData.split(',')[1];
+                        const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                        const img = await tempPdf.embedJpg(imgBytes);
+                        const newPage = tempPdf.addPage([img.width, img.height]);
+                        newPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                      }
+                    }
+                    
+                    const tempBytes = await tempPdf.save({ useObjectStreams: true });
+                    console.log(`Rasterized size with scale ${config.scale}: ${tempBytes.length} bytes`);
+                    
+                    if (tempBytes.length <= targetBytes) {
+                      bestRasterizedBytes = tempBytes;
+                      foundAggressive = true;
+                    } else {
+                      // Keep the smallest one we found so far
+                      if (tempBytes.length < bestRasterizedBytes.length) {
+                        bestRasterizedBytes = tempBytes;
+                      }
+                    }
+                  }
+                  
+                  currentBlob = new Blob([bestRasterizedBytes], { type: 'application/pdf' });
+                } catch (rasterError) {
+                  console.error('Aggressive rasterization failed:', rasterError);
+                }
               }
+              
+              resultBlob = currentBlob;
             }
 
-            // 2. EXACT SIZE LOGIC: Pad if smaller, NEVER truncate PDFs
+            // 3. EXACT SIZE MATCHING (Padding/Truncation)
+            // We only do this if the user really wants the EXACT size
+            // Note: Truncation is dangerous for PDFs, so we only pad PDFs
             if (resultBlob.size > targetBytes) {
-              if (resultBlob.type === 'application/pdf') {
-                // NEVER truncate a PDF as it breaks the file structure
-                console.warn('PDF is larger than target size, but truncation is skipped to prevent corruption.');
-              } else {
-                // For images, truncation is risky but requested for "exact"
+              if (resultBlob.type !== 'application/pdf') {
                 const arrayBuffer = await resultBlob.arrayBuffer();
                 resultBlob = new Blob([arrayBuffer.slice(0, targetBytes)], { type: resultBlob.type });
-                console.log(`Truncated file to reach exact target size: ${targetBytes} bytes`);
+                console.log(`Truncated to exactly ${targetBytes} bytes`);
+              } else {
+                console.warn('Cannot truncate PDF without corruption. Result is as small as possible.');
               }
             } else if (resultBlob.size < targetBytes) {
-              // Pad to reach exact size
+              // Pad with null bytes to reach EXACT size
               const paddingSize = targetBytes - resultBlob.size;
               const padding = new Uint8Array(paddingSize);
               resultBlob = new Blob([resultBlob, padding], { type: resultBlob.type });
-              console.log(`Padded file to reach exact target size: ${targetBytes} bytes`);
+              console.log(`Padded with ${paddingSize} bytes to reach exactly ${targetBytes} bytes`);
             }
           } catch (e) {
-            console.error('Optimization failed:', e);
+            console.error('Target size optimization failed:', e);
           }
         }
         saveAs(resultBlob, resultFileName);
