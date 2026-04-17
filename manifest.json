@@ -1,0 +1,21 @@
+{
+  "name": "SmartPdf",
+  "short_name": "SmartPdf",
+  "description": "Free Online PDF Tools | Merge, Split, Compress & Convert",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "https://storage.googleapis.com/static-assets-public/ais-uploaded-assets/6397e596-f9f3-4e3a-ace5-67ca78f0d832.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://storage.googleapis.com/static-assets-public/ais-uploaded-assets/6397e596-f9f3-4e3a-ace5-67ca78f0d832.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
