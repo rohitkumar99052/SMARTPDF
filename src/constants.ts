@@ -84,8 +84,7 @@ export const TOOLS: PDFTool[] = [
     icon: ImageIcon,
     category: ['All', 'Convert PDF'],
     color: 'bg-yellow-500',
-    action: 'convert',
-    featured: true
+    action: 'convert'
   },
   {
     id: 'split',

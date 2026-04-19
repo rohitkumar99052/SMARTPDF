@@ -64,6 +64,8 @@ import html2pdf from 'html2pdf.js';
 import { renderAsync } from 'docx-preview';
 import JSZip from 'jszip';
 import { removeBackground } from '@imgly/background-removal';
+import ReactCrop, { type Crop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -1310,7 +1312,40 @@ export default function App() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string, sizeUnit?: 'MB' | 'KB', splitRange?: string }>({ sizeUnit: 'MB' });
+  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string, sizeUnit?: 'MB' | 'KB', splitRange?: string, cropMarginValue?: number }>({ sizeUnit: 'MB', cropMarginValue: 10 });
+  const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>({
+    unit: '%',
+    x: 10,
+    y: 10,
+    width: 80,
+    height: 80
+  });
+
+  useEffect(() => {
+    const generateCropPreview = async () => {
+      if (selectedTool?.id === 'crop-pdf' && files.length > 0) {
+        try {
+          const fileBytes = await files[0].arrayBuffer();
+          const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileBytes) });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+          setCropPreviewUrl(canvas.toDataURL('image/jpeg'));
+        } catch (err) {
+          console.error("Failed to generate crop preview:", err);
+        }
+      } else {
+        setCropPreviewUrl(null);
+      }
+    };
+    generateCropPreview();
+  }, [files, selectedTool]);
 
   const processPDF = async () => {
     if (files.length === 0 || !selectedTool) return;
@@ -2162,15 +2197,75 @@ export default function App() {
         }
 
         case 'crop-pdf': {
-          const pdf = await PDFDocument.load(firstFileBytes);
+          setProcessingProgress(20);
+          const pdf = await PDFDocument.load(firstFileBytes, { updateMetadata: false });
           const pages = pdf.getPages();
-          pages.forEach(page => {
-            const { width, height } = page.getSize();
-            page.setCropBox(10, 10, width - 20, height - 20);
+          
+          pages.forEach((page, index) => {
+            const rot = page.getRotation().angle;
+            // Native MediaBox (unrotated, raw coords)
+            const box = page.getCropBox() || page.getMediaBox();
+            const rawWidth = box.width;
+            const rawHeight = box.height;
+            const originX = box.x;
+            const originY = box.y;
+            
+            // Visual crop percentages (0-100) -> fractional (0-1)
+            let cx = (crop?.x ?? 0) / 100;
+            let cy = (crop?.y ?? 0) / 100;
+            let cw = (crop?.width ?? 100) / 100;
+            let ch = (crop?.height ?? 100) / 100;
+            
+            // If crop width or height is exactly 0 due to an accidental click, revert to 100% to avoid crash
+            if (cw === 0 || ch === 0) {
+              cx = 0; cy = 0; cw = 1; ch = 1;
+            }
+
+            // Clamp to strictly 0-1 range to prevent out-of-bounds crops
+            cx = Math.max(0, Math.min(1, cx));
+            cy = Math.max(0, Math.min(1, cy));
+            cw = Math.max(0, Math.min(1 - cx, cw));
+            ch = Math.max(0, Math.min(1 - cy, ch));
+            
+            // Map a visual point (vx, vy) to raw fractions (rx, ry)
+            const mapToRaw = (vx: number, vy: number) => {
+              if (rot === 90) return { rx: vy, ry: 1 - vx };
+              if (rot === 180) return { rx: 1 - vx, ry: vy };
+              if (rot === 270 || rot === -90) return { rx: 1 - vy, ry: vx };
+              return { rx: vx, ry: 1 - vy }; // 0 degrees
+            };
+            
+            const rawPts = [
+              mapToRaw(cx, cy),
+              mapToRaw(cx + cw, cy),
+              mapToRaw(cx + cw, cy + ch),
+              mapToRaw(cx, cy + ch)
+            ];
+            
+            const minRx = Math.min(...rawPts.map(p => p.rx));
+            const maxRx = Math.max(...rawPts.map(p => p.rx));
+            const minRy = Math.min(...rawPts.map(p => p.ry));
+            const maxRy = Math.max(...rawPts.map(p => p.ry));
+            
+            const finalX = originX + (minRx * rawWidth);
+            const finalY = originY + (minRy * rawHeight);
+            const finalW = (maxRx - minRx) * rawWidth;
+            const finalH = (maxRy - minRy) * rawHeight;
+            
+            page.setCropBox(finalX, finalY, finalW, finalH);
+            page.setMediaBox(finalX, finalY, finalW, finalH);
+            page.setTrimBox(finalX, finalY, finalW, finalH);
+            page.setBleedBox(finalX, finalY, finalW, finalH);
+            page.setArtBox(finalX, finalY, finalW, finalH);
+            
+            setProcessingProgress(Math.round(20 + ((index + 1) / pages.length) * 60));
           });
+          
+          setProcessingProgress(85);
           const bytes = await pdf.save();
           resultBlob = new Blob([bytes], { type: 'application/pdf' });
           resultFileName = `cropped_${firstFile.name}`;
+          setProcessingProgress(100);
           break;
         }
 
@@ -2859,18 +2954,63 @@ export default function App() {
             >
               {t('compress_pdf')}
             </button>
-            <button 
-              onClick={() => { setActiveCategory('Convert PDF'); setSelectedTool(null); }}
-              className="flex items-center gap-1 hover:text-red-600 transition-colors"
-            >
-              {t('convert_pdf')} <ChevronDown className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => { setActiveCategory('All'); setSelectedTool(null); }}
-              className="flex items-center gap-1 hover:text-red-600 transition-colors"
-            >
-              {t('all_pdf_tools')} <ChevronDown className="w-4 h-4" />
-            </button>
+            <div className="relative group/convert h-full flex items-center py-2">
+              <button 
+                onClick={() => { setActiveCategory('Convert PDF'); setSelectedTool(null); }}
+                className="flex items-center gap-1 hover:text-red-600 transition-colors"
+              >
+                {t('convert_pdf')} <ChevronDown className="w-4 h-4 group-hover/convert:-rotate-180 transition-transform duration-200" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover/convert:opacity-100 group-hover/convert:visible transition-all duration-200 z-50">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-5 w-[750px] grid grid-cols-3 gap-2 relative before:absolute before:-top-2 before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-b-white drop-shadow-md">
+                  {TOOLS.filter(t => t.category.includes('Convert PDF')).map(tool => (
+                    <button
+                      key={tool.id}
+                      onClick={() => setSelectedTool(tool)}
+                      className="flex items-center gap-3 w-full text-left p-2.5 hover:bg-slate-50 rounded-xl group text-slate-700 hover:text-red-600 transition-colors"
+                    >
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm", tool.color)}>
+                        <tool.icon className="w-4 h-4" />
+                      </div>
+                      <span className="font-bold text-sm tracking-tight truncate">{translateTool(tool).title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="group/all h-full flex items-center py-2">
+              <button 
+                onClick={() => { setActiveCategory('All'); setSelectedTool(null); }}
+                className="flex items-center gap-1 hover:text-red-600 transition-colors"
+              >
+                {t('all_pdf_tools')} <ChevronDown className="w-4 h-4 group-hover/all:-rotate-180 transition-transform duration-200" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover/all:opacity-100 group-hover/all:visible transition-all duration-200 z-50">
+                <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-8 w-[90vw] max-w-[1000px] columns-2 lg:columns-4 gap-8 drop-shadow-lg">
+                  {CATEGORIES.filter(c => c !== 'All' && c !== 'Workflows').map(category => (
+                    <div key={category} className="space-y-4 mb-8 break-inside-avoid">
+                      <h4 className="font-black text-slate-800 text-sm tracking-widest uppercase border-b border-slate-100 pb-2">{translateCategory(category)}</h4>
+                      <ul className="space-y-1">
+                        {TOOLS.filter(t => t.category.includes(category)).map(tool => (
+                          <li key={tool.id}>
+                            <button
+                              onClick={() => setSelectedTool(tool)}
+                              className="text-sm font-semibold text-slate-700 hover:text-red-600 transition-colors text-left flex items-center gap-3 w-full p-2 hover:bg-slate-50 rounded-xl group"
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm", tool.color)}>
+                                <tool.icon className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="truncate font-medium">{translateTool(tool).title}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -3664,6 +3804,32 @@ export default function App() {
                                 value={toolOptions.watermark || ''}
                                 onChange={(e) => setToolOptions(prev => ({ ...prev, watermark: e.target.value }))}
                               />
+                            </div>
+                          )}
+
+                          {selectedTool.id === 'crop-pdf' && (
+                            <div className="flex flex-col gap-4">
+                              <label className="block text-xs font-bold text-slate-500 uppercase">Visually Crop PDF</label>
+                              {cropPreviewUrl ? (
+                                <div className="flex justify-center bg-slate-100 p-4 border border-slate-200 rounded-xl overflow-auto max-h-[600px]">
+                                  <ReactCrop 
+                                    crop={crop} 
+                                    onChange={(pixelCrop, percentCrop) => setCrop(percentCrop)}
+                                    // onComplete acts as a failsafe to ensure state settles reliably
+                                    onComplete={(pixelCrop, percentCrop) => setCrop(percentCrop)}
+                                    minWidth={5}
+                                    minHeight={5}
+                                    keepSelection={true}
+                                  >
+                                    <img src={cropPreviewUrl} alt="Crop Preview" className="max-w-full h-[500px] object-contain shadow-sm pointer-events-none" />
+                                  </ReactCrop>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-slate-500 italic text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                  Loading crop preview...
+                                </div>
+                              )}
+                              <p className="text-[11px] text-slate-400 italic text-center">Drag the bounding box above to select the area you want to keep. This crop area will be identically applied to all pages in the PDF.</p>
                             </div>
                           )}
                         </div>
