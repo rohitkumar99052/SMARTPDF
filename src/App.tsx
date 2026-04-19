@@ -2501,7 +2501,7 @@ export default function App() {
                 setProcessingProgress(prev => Math.max(prev, targetPercent));
                 console.log(`AI Step ${key}: ${targetPercent}%`);
               },
-              model: 'medium',
+              model: 'isnet',
             });
             
             clearInterval(progressInterval);

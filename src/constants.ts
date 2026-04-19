@@ -48,15 +48,6 @@ export const TOOLS: PDFTool[] = [
     featured: true
   },
   {
-    id: 'pdf-to-jpg',
-    title: 'PDF to JPG',
-    description: 'Convert each PDF page into a JPG or extract all images contained in a PDF.',
-    icon: ImageIcon,
-    category: ['All', 'Convert PDF'],
-    color: 'bg-yellow-500',
-    action: 'convert'
-  },
-  {
     id: 'compress',
     title: 'Compress PDF',
     description: 'Reduce file size while optimizing for maximal PDF quality.',
@@ -84,6 +75,16 @@ export const TOOLS: PDFTool[] = [
     category: ['All', 'Organize PDF'],
     color: 'bg-orange-500',
     action: 'merge',
+    featured: true
+  },
+  {
+    id: 'pdf-to-jpg',
+    title: 'PDF to JPG',
+    description: 'Convert each PDF page into a JPG or extract all images contained in a PDF.',
+    icon: ImageIcon,
+    category: ['All', 'Convert PDF'],
+    color: 'bg-yellow-500',
+    action: 'convert',
     featured: true
   },
   {
