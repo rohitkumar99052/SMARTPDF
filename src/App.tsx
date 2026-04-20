@@ -67,6 +67,7 @@ import JSZip from 'jszip';
 import { removeBackground } from '@imgly/background-removal';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import FlappyBird from './components/FlappyBird';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -3723,13 +3724,16 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Upload Area */}
-                  <div 
-                    className={cn(
-                      "border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-300",
-                      files.length > 0 ? "border-slate-200 bg-slate-50" : "border-slate-300 hover:border-red-400 hover:bg-red-50/30"
-                    )}
-                  >
+                  {selectedTool.id === 'flappy-bird' ? (
+                    <FlappyBird />
+                  ) : (
+                    /* Upload Area */
+                    <div 
+                      className={cn(
+                        "border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-300",
+                        files.length > 0 ? "border-slate-200 bg-slate-50" : "border-slate-300 hover:border-red-400 hover:bg-red-50/30"
+                      )}
+                    >
                     {files.length === 0 ? (
                       <>
                         <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-2">
@@ -3994,6 +3998,7 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               </div>
 

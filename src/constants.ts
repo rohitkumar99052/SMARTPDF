@@ -22,7 +22,8 @@ import {
   FileCode,
   FileCheck,
   Crop,
-  Eraser
+  Eraser,
+  Gamepad2
 } from 'lucide-react';
 import { PDFTool, ToolCategory } from './types';
 
@@ -292,6 +293,15 @@ export const TOOLS: PDFTool[] = [
     category: ['All', 'Edit PDF'],
     color: 'bg-fuchsia-500',
     action: 'edit'
+  },
+  {
+    id: 'flappy-bird',
+    title: 'Take A Break',
+    description: 'Play a quick flappy bird style mini-game right in your browser.',
+    icon: Gamepad2,
+    category: ['All'],
+    color: 'bg-sky-500',
+    action: 'game'
   }
 ];
 
