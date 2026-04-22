@@ -1319,8 +1319,47 @@ export default function App() {
     }
   }, [showAdminDashboard]);
 
+  // Sync state from URL on initial load and back/forward browser navigation
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path && path.length > 1) {
+        const toolId = path.substring(1); // remove leading slash
+        const foundTool = TOOLS.find((t) => t.id === toolId);
+        if (foundTool) {
+          setSelectedTool(foundTool);
+          return;
+        }
+      }
+      setSelectedTool(null);
+    };
+
+    // Evaluate once on mount
+    handlePopState();
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Update URL whenever selectedTool changes
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const currentToolId = currentPath.length > 1 ? currentPath.substring(1) : null;
+    const newToolId = selectedTool ? selectedTool.id : null;
+
+    if (newToolId !== currentToolId) {
+      if (newToolId) {
+        window.history.pushState({ tool: newToolId }, '', `/${newToolId}`);
+      } else {
+        window.history.pushState({ tool: null }, '', '/');
+      }
+    }
+  }, [selectedTool]);
+
+  useEffect(() => {
+    if (!selectedTool && !showAdminDashboard) {
+      window.scrollTo(0, 0);
+    }
   }, [selectedTool, showAdminDashboard]);
 
   const filteredTools = TOOLS.filter(tool => {
