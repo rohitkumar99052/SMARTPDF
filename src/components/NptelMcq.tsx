@@ -81,6 +81,24 @@ export default function NptelMcq() {
     });
   }, []);
 
+  // Handle Browser Back button locally inside the tool
+  useEffect(() => {
+    const handleLocationChange = () => {
+      // If the back button is pressed and hash is cleared, nullify currentQuiz
+      if (window.location.hash !== '#quiz') {
+        setCurrentQuiz(null);
+      }
+    };
+    
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
+
   const shuffleArray = <T,>(arr: T[]): T[] => {
     const newArr = [...arr];
     for (let i = newArr.length - 1; i > 0; i--) {
@@ -109,6 +127,11 @@ export default function NptelMcq() {
       isSubmitted: false,
       title: title
     });
+    
+    // Push hash to history stack so mobile back button returns to the section choice grid
+    if (window.location.hash !== '#quiz') {
+      window.history.pushState(null, '', window.location.pathname + '#quiz');
+    }
   };
 
   const handleOptionSelect = (qId: string, optionId: string) => {
@@ -255,7 +278,13 @@ export default function NptelMcq() {
             </button>
           ) : (
             <button 
-              onClick={() => setCurrentQuiz(null)}
+              onClick={() => {
+                if (window.location.hash === '#quiz') {
+                  window.history.back();
+                } else {
+                  setCurrentQuiz(null);
+                }
+              }}
               className="bg-slate-900 text-white px-8 md:px-12 py-4 rounded-full font-black text-lg md:text-xl hover:shadow-lg active:scale-95 transition-all w-full max-w-md"
             >
               FINISH & GO BACK
@@ -298,11 +327,11 @@ export default function NptelMcq() {
 
       {questions.length > 0 ? (
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 w-full max-w-4xl mx-auto">
-            <h3 className="text-4xl font-black text-slate-800 mb-2">{questions.length} Questions Loaded</h3>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm mb-8">Select Exam Section</p>
+          <div className="bg-white p-4 md:p-8 rounded-3xl shadow-xl border border-slate-100 w-full max-w-4xl mx-auto">
+            <h3 className="text-3xl md:text-4xl font-black text-slate-800 mb-2">{questions.length} Questions</h3>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs md:text-sm mb-6 md:mb-8">Select Exam Section</p>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-8">
               {Array.from({ length: Math.ceil(questions.length / 30) }).map((_, i) => {
                 const start = i * 30;
                 const setSize = Math.min(30, questions.length - start);
@@ -310,19 +339,19 @@ export default function NptelMcq() {
                   <button 
                     key={i}
                     onClick={() => startQuiz(setSize, start, `NPTEL Mock Test: Part ${i + 1}`)}
-                    className="flex flex-col items-center justify-center bg-slate-50 hover:bg-purple-50 border-2 border-slate-100 hover:border-purple-200 p-6 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 group"
+                    className="flex flex-col items-center justify-center bg-slate-50 hover:bg-purple-50 border-2 border-slate-100 hover:border-purple-200 p-4 md:p-6 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 group"
                   >
-                    <span className="text-xl font-bold text-slate-700 group-hover:text-purple-700 transition-colors">Part {i + 1}</span>
-                    <span className="text-sm font-medium text-slate-500 mt-2">{setSize} Questions</span>
+                    <span className="text-lg md:text-xl font-bold text-slate-700 group-hover:text-purple-700 transition-colors">Part {i + 1}</span>
+                    <span className="text-xs md:text-sm font-medium text-slate-500 mt-1 md:mt-2">{setSize} Questions</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="pt-8 border-t border-slate-100">
+            <div className="pt-6 md:pt-8 border-t border-slate-100">
               <button 
                 onClick={() => startQuiz(questions.length, 0, "FULL COMPREHENSIVE TEST")}
-                className="w-full max-w-md mx-auto bg-gradient-to-r from-purple-600 to-pink-500 text-white py-4 rounded-2xl font-black text-xl hover:shadow-xl hover:shadow-pink-200 active:scale-95 transition-all"
+                className="w-full max-w-md mx-auto bg-gradient-to-r from-purple-600 to-pink-500 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl hover:shadow-xl hover:shadow-pink-200 active:scale-95 transition-all px-4"
               >
                 ATTEMPT ALL {questions.length} QUESTIONS
               </button>

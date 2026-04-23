@@ -1327,6 +1327,7 @@ export default function App() {
         const toolId = path.substring(1); // remove leading slash
         const foundTool = TOOLS.find((t) => t.id === toolId);
         if (foundTool) {
+          // Verify we really need to change tool. Setting same tool triggers no-op in React anyway, but just in case.
           setSelectedTool(foundTool);
           return;
         }
