@@ -23,22 +23,11 @@ import {
   FileCheck,
   Crop,
   Eraser,
-  Gamepad2,
-  BookOpenCheck
+  Gamepad2
 } from 'lucide-react';
 import { PDFTool, ToolCategory } from './types';
 
 export const TOOLS: PDFTool[] = [
-  {
-    id: 'nptel-mcq',
-    title: 'NPTEL IOT ALL MCQ',
-    description: '180+ objective questions mixed from all 12 PDFs. Test your knowledge!',
-    icon: BookOpenCheck,
-    category: ['All'],
-    color: 'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 animate-gradient-x text-white',
-    action: 'quiz',
-    featured: true
-  },
   {
     id: 'remove-bg',
     title: 'Remove Background',

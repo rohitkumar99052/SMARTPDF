@@ -68,7 +68,6 @@ import { removeBackground } from '@imgly/background-removal';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import FlappyBird from './components/FlappyBird';
-import NptelMcq from './components/NptelMcq';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -93,7 +92,6 @@ import {
   updatePassword,
   sendPasswordResetEmail,
   sendEmailVerification,
-  signOut,
   doc, 
   setDoc, 
   getDoc,
@@ -2709,7 +2707,7 @@ export default function App() {
                 
                 setProcessingProgress(prev => Math.max(prev, targetPercent));
               },
-              model: 'medium', // 'medium' provides much better quality than 'small' but avoids freezing
+              model: 'isnet', // 'isnet' is the standard model providing high quality
               output: { format: 'image/png' } // PNG to retain perfect transparency
             });
             
@@ -3767,8 +3765,6 @@ export default function App() {
 
                   {selectedTool.id === 'flappy-bird' ? (
                     <FlappyBird />
-                  ) : selectedTool.id === 'nptel-mcq' ? (
-                    <NptelMcq />
                   ) : (
                     /* Upload Area */
                     <div 
