@@ -1388,7 +1388,26 @@ export default function App() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const [toolOptions, setToolOptions] = useState<{ password?: string, watermark?: string, pageStart?: number, targetSize?: string, sizeUnit?: 'MB' | 'KB', splitRange?: string, cropMarginValue?: number }>({ sizeUnit: 'MB', cropMarginValue: 10 });
+  const [toolOptions, setToolOptions] = useState<{ 
+    password?: string, 
+    watermark?: string, 
+    pageStart?: number, 
+    targetSize?: string, 
+    sizeUnit?: 'MB' | 'KB', 
+    splitRange?: string, 
+    cropMarginValue?: number,
+    pageOrientation?: 'portrait' | 'landscape',
+    pageSize?: 'fit' | 'A4' | 'US_Letter',
+    margin?: 'no_margin' | 'small' | 'big',
+    mergeImages?: boolean
+  }>({ 
+    sizeUnit: 'MB', 
+    cropMarginValue: 10,
+    pageOrientation: 'portrait',
+    pageSize: 'A4',
+    margin: 'no_margin',
+    mergeImages: true
+  });
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
@@ -2387,10 +2406,39 @@ export default function App() {
         }
 
         case 'jpg-to-pdf': {
-          const pdf = await PDFDocument.create();
+          let zip: JSZip | null = null;
+          let pdf = await PDFDocument.create();
+          if (!toolOptions.mergeImages) {
+            zip = new JSZip();
+          }
+
+          const getPageSize = () => {
+            if (toolOptions.pageSize === 'A4') {
+              let w = 595.28, h = 841.89;
+              if (toolOptions.pageOrientation === 'landscape') {
+                return [h, w];
+              }
+              return [w, h];
+            } else if (toolOptions.pageSize === 'US_Letter') {
+              let w = 612, h = 792;
+              if (toolOptions.pageOrientation === 'landscape') {
+                return [h, w];
+              }
+              return [w, h];
+            }
+            return null;
+          };
+
+          const marginValue = toolOptions.margin === 'small' ? 20 : toolOptions.margin === 'big' ? 50 : 0;
+          
           for (let i = 0; i < files.length; i++) {
             const file = files[i];
             setProcessingProgress(Math.round((i / files.length) * 100));
+            
+            if (!toolOptions.mergeImages && i > 0) {
+              pdf = await PDFDocument.create();
+            }
+
             const imgBytes = await file.arrayBuffer();
             let img;
             if (file.type === 'image/png') {
@@ -2398,13 +2446,51 @@ export default function App() {
             } else {
               img = await pdf.embedJpg(imgBytes);
             }
-            const page = pdf.addPage([img.width, img.height]);
-            page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+
+            let pageWidth, pageHeight;
+            let drawX = 0, drawY = 0, drawWidth = img.width, drawHeight = img.height;
+
+            const fixedSize = getPageSize();
+            if (fixedSize) {
+              [pageWidth, pageHeight] = fixedSize;
+              const innerWidth = pageWidth - marginValue * 2;
+              const innerHeight = pageHeight - marginValue * 2;
+              
+              const scale = Math.min(innerWidth / img.width, innerHeight / img.height);
+              drawWidth = img.width * scale;
+              drawHeight = img.height * scale;
+              drawX = marginValue + (innerWidth - drawWidth) / 2;
+              drawY = marginValue + (innerHeight - drawHeight) / 2;
+            } else {
+              pageWidth = img.width + marginValue * 2;
+              pageHeight = img.height + marginValue * 2;
+              drawWidth = img.width;
+              drawHeight = img.height;
+              drawX = marginValue;
+              drawY = marginValue;
+            }
+
+            const page = pdf.addPage([pageWidth, pageHeight]);
+            page.drawImage(img, { x: drawX, y: drawY, width: drawWidth, height: drawHeight });
+
+            if (!toolOptions.mergeImages) {
+              const bytes = await pdf.save();
+              zip!.file(`${file.name.replace(/\.[^/.]+$/, "")}.pdf`, bytes);
+            }
           }
+          
           setProcessingProgress(95);
-          const bytes = await pdf.save();
-          resultBlob = new Blob([bytes], { type: 'application/pdf' });
-          resultFileName = 'images_to_pdf.pdf';
+
+          if (toolOptions.mergeImages) {
+            const bytes = await pdf.save();
+            resultBlob = new Blob([bytes], { type: 'application/pdf' });
+            resultFileName = 'images_to_pdf.pdf';
+          } else {
+            const zipBlob = await zip!.generateAsync({ type: 'blob' });
+            resultBlob = zipBlob;
+            resultFileName = 'converted_pdfs.zip';
+          }
+          
           setProcessingProgress(100);
           break;
         }
@@ -3916,6 +4002,86 @@ export default function App() {
                                 value={toolOptions.password || ''}
                                 onChange={(e) => setToolOptions(prev => ({ ...prev, password: e.target.value }))}
                               />
+                            </div>
+                          )}
+
+                          {selectedTool.id === 'jpg-to-pdf' && (
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Page orientation</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, pageOrientation: 'portrait' }))}
+                                    className={`py-3 px-2 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${toolOptions.pageOrientation === 'portrait' ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <div className="w-6 h-8 border-2 rounded-sm border-current"></div>
+                                    <span className="text-xs font-bold">Portrait</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, pageOrientation: 'landscape' }))}
+                                    className={`py-3 px-2 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${toolOptions.pageOrientation === 'landscape' ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <div className="w-8 h-6 border-2 rounded-sm border-current"></div>
+                                    <span className="text-xs font-bold">Landscape</span>
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Page size</label>
+                                <select 
+                                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-red-500 outline-none text-sm font-medium text-slate-700 bg-white"
+                                  value={toolOptions.pageSize}
+                                  onChange={(e) => setToolOptions(prev => ({ ...prev, pageSize: e.target.value as any }))}
+                                >
+                                  <option value="fit">Fit (same page size as image)</option>
+                                  <option value="A4">A4 (297x210 mm)</option>
+                                  <option value="US_Letter">US Letter (215x279 mm)</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Margin</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, margin: 'no_margin' }))}
+                                    className={`py-3 px-2 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${toolOptions.margin === 'no_margin' ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <div className="w-6 h-8 border-2 border-current rounded-sm"></div>
+                                    <span className="text-xs font-bold whitespace-nowrap">No margin</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, margin: 'small' }))}
+                                    className={`py-3 px-2 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${toolOptions.margin === 'small' ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <div className="w-6 h-8 border-2 border-current rounded-sm p-1">
+                                      <div className="w-full h-full bg-current opacity-20 border border-current border-dashed"></div>
+                                    </div>
+                                    <span className="text-xs font-bold whitespace-nowrap">Small</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, margin: 'big' }))}
+                                    className={`py-3 px-2 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${toolOptions.margin === 'big' ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <div className="w-6 h-8 border-2 border-current rounded-sm p-2">
+                                      <div className="w-full h-full bg-current opacity-20 border border-current border-dashed"></div>
+                                    </div>
+                                    <span className="text-xs font-bold whitespace-nowrap">Big</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-slate-200">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                  <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 rounded text-red-600 focus:ring-red-500 border-slate-300"
+                                    checked={toolOptions.mergeImages}
+                                    onChange={(e) => setToolOptions(prev => ({ ...prev, mergeImages: e.target.checked }))}
+                                  />
+                                  <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">Merge all images in one PDF file</span>
+                                </label>
+                              </div>
                             </div>
                           )}
 
