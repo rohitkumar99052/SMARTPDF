@@ -1,0 +1,8 @@
+This is a placeholder for the actual Android APK file. 
+Because this app is built inside Google AI Studio, a real native Android APK cannot be dynamically generated here using Android Build tools inside this container. 
+
+To create a fully functional, real Android APK for your app:
+1. Copy the "Shared App URL" from AI Studio after building.
+2. Go to a free PWA-to-APK service (like https://webintoapp.com/ or https://www.pwabuilder.com/).
+3. Paste the URL, and follow the steps to generate your actual .apk file.
+4. (Optional) Once downloaded, you can upload the .apk file into your AI Studio project's "public" folder. Name it "SmartPdf.apk" to make this download button work with the real Android application.

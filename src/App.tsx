@@ -661,6 +661,7 @@ export default function App() {
   const [showLegalModal, setShowLegalModal] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedUserHistory, setSelectedUserHistory] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
@@ -1335,7 +1336,10 @@ export default function App() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      setShowInstallGuideModal(true);
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
@@ -3275,16 +3279,15 @@ export default function App() {
             </div>
           </div>
           
-          {isInstallable && (
-            <div className="hidden sm:block mr-2">
-              <button 
-                onClick={handleInstallClick}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 active:scale-95 transition-all"
-              >
-                <Download className="w-4 h-4" /> Download App
-              </button>
-            </div>
-          )}
+          <div className="hidden sm:block mr-2">
+            <a 
+              href="/SmartPdf.apk" 
+              download="SmartPdf.apk"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:from-green-600 hover:to-emerald-700 active:scale-95 transition-all animate-pulse-slow"
+            >
+              <Download className="w-4 h-4" /> Android APK
+            </a>
+          </div>
 
           <div className="relative">
             {isAuthLoading ? (
@@ -3460,14 +3463,14 @@ export default function App() {
                   exit={{ opacity: 0, scale: 0.95, y: -20 }}
                   className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 space-y-2"
                 >
-                    {isInstallable && (
-                      <button 
-                        onClick={() => { handleInstallClick(); setShowMobileMenu(false); }}
-                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl font-bold hover:shadow-lg transition-all mb-2"
-                      >
-                        <Download className="w-5 h-5" /> Download App
-                      </button>
-                    )}
+                    <a 
+                      href="/SmartPdf.apk" 
+                      download="SmartPdf.apk"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:shadow-lg transition-all mb-2 animate-pulse-slow"
+                    >
+                      <Download className="w-5 h-5" /> Download Android APK
+                    </a>
                     <button 
                       onClick={() => { setShowAboutModal(true); setShowMobileMenu(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-bold transition-colors"
@@ -4334,6 +4337,60 @@ export default function App() {
                     className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-900 transition-all active:scale-95"
                   >
                     {t('got_it')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showInstallGuideModal && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-black text-slate-800">Install Android App</h3>
+                  <button onClick={() => setShowInstallGuideModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0">1</div>
+                    <div>
+                      <p className="font-bold text-slate-800">Tap the browser menu</p>
+                      <p className="text-sm text-slate-500 mt-1">Look for the three dots in the top right or bottom right corner of your browser.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-600 shrink-0">2</div>
+                    <div>
+                      <p className="font-bold text-slate-800">Select "Install app"</p>
+                      <p className="text-sm text-slate-500 mt-1">Tap <strong>Install app</strong> or <strong>Add to Home screen</strong> from the menu options.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 shrink-0">3</div>
+                    <div>
+                      <p className="font-bold text-slate-800">Confirm Installation</p>
+                      <p className="text-sm text-slate-500 mt-1">Follow the prompt to install. The app will be securely added to your home screen.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <button 
+                    onClick={() => setShowInstallGuideModal(false)}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl py-3 font-bold hover:shadow-lg transition-all"
+                  >
+                    Got it
                   </button>
                 </div>
               </div>
