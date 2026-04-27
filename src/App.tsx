@@ -2812,6 +2812,7 @@ export default function App() {
             const optimizedFileBlob = await maximizeAndCompress(firstFile);
             
             const blob = await removeBackground(optimizedFileBlob, {
+              publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/',
               progress: (key, current, total) => {
                 const phasePercent = total > 0 ? (current / total) * 100 : 0;
                 let targetPercent = 0;
@@ -3938,14 +3939,14 @@ export default function App() {
                       <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm", tool.color)}>
                         <tool.icon className="w-6 h-6" />
                       </div>
-                      <div className="flex-1 overflow-hidden border-b border-slate-100 pb-3">
+                      <div className="flex-1 min-w-0 border-b border-slate-100 pb-3">
                         <div className="flex justify-between items-center mb-0.5">
-                          <h3 className="font-bold text-slate-900 text-sm leading-tight pr-2">{tTool.title}</h3>
+                          <h3 className="font-bold text-slate-800 text-[13px] leading-tight pr-2 truncate">{tTool.title}</h3>
                           {tool.featured && (
-                            <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0">Featured</span>
+                            <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-black whitespace-nowrap shrink-0">NEW</span>
                           )}
                         </div>
-                        <p className="text-slate-500 text-xs line-clamp-1">{tTool.description}</p>
+                        <p className="text-slate-500 text-[11px] line-clamp-1 opacity-80">{tTool.description}</p>
                       </div>
                     </div>
                   );
@@ -5345,10 +5346,10 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-fit max-w-[95vw] bg-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[92vh] md:h-[85vh]"
             >
               {/* Preview Area */}
-              <div className="bg-white flex items-center justify-center relative overflow-hidden max-h-[60vh] md:max-h-none h-fit w-fit">
+              <div className="flex-1 bg-slate-50 flex items-center justify-center relative overflow-hidden min-h-[350px] md:min-h-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
                 {/* Transparency Checkerboard */}
                 {bgEditorColor === 'transparent' && !bgEditorCustomImage && (
                   <div className="absolute inset-0 z-0" style={{ 
@@ -5369,13 +5370,13 @@ export default function App() {
                 <img 
                   src={bgEditorImage} 
                   alt="Processed" 
-                  className="relative z-10 max-w-full max-h-[60vh] md:max-h-[85vh] object-contain block"
+                  className="relative z-10 max-w-[90%] max-h-[90%] object-contain drop-shadow-2xl"
                   referrerPolicy="no-referrer"
                 />
               </div>
 
               {/* Controls Area */}
-              <div className="w-full md:w-72 bg-white p-6 flex flex-col gap-6 border-l border-slate-100">
+              <div className="w-full md:w-80 bg-white p-6 flex flex-col gap-6 border-t md:border-t-0 md:border-l border-slate-100 overflow-y-auto">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-slate-800">{t('bg_editor')}</h3>
                   <button onClick={() => setBgEditorOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
