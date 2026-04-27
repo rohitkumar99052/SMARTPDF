@@ -1431,14 +1431,16 @@ export default function App() {
     pageOrientation?: 'portrait' | 'landscape',
     pageSize?: 'fit' | 'A4' | 'US_Letter',
     margin?: 'no_margin' | 'small' | 'big',
-    mergeImages?: boolean
+    mergeImages?: boolean,
+    bgRemovalQuality?: 'fast' | 'high'
   }>({ 
     sizeUnit: 'MB', 
     cropMarginValue: 10,
     pageOrientation: 'portrait',
     pageSize: 'A4',
     margin: 'no_margin',
-    mergeImages: true
+    mergeImages: true,
+    bgRemovalQuality: 'fast'
   });
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>({
@@ -2771,14 +2773,16 @@ export default function App() {
 
           try {
             // Optimization: To balance super high quality without freezing mobile browsers,
-            // we scale down to a 1024px constraint.
+            // we scale down to a 512px constraint.
+            const isFast = toolOptions.bgRemovalQuality === 'fast';
             const maximizeAndCompress = async (file: File): Promise<Blob> => {
               return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {
                   const canvas = document.createElement('canvas');
                   let { width, height } = img;
-                  const MAX_SIZE = 1024; // 1024px for great quality
+                  // Extremely small (384px) for 'fast', standard (1024px) for 'high'
+                  const MAX_SIZE = isFast ? 384 : 1024;
                   
                   if (width > MAX_SIZE || height > MAX_SIZE) {
                     if (width > height) {
@@ -2798,7 +2802,7 @@ export default function App() {
                   ctx.drawImage(img, 0, 0, width, height);
                   canvas.toBlob((blob) => {
                     resolve(blob || file);
-                  }, 'image/jpeg', 0.95); // High quality
+                  }, 'image/jpeg', isFast ? 0.8 : 0.95);
                 };
                 img.onerror = () => resolve(file); // fallback
                 img.src = URL.createObjectURL(file);
@@ -2813,20 +2817,21 @@ export default function App() {
                 let targetPercent = 0;
                 
                 if (key === 'fetch') {
-                  setProcessingText(`Downloading AI Engine (one-time)...`);
+                  setProcessingText(`Downloading AI Model (${isFast ? '~40MB' : '~80MB'}, first use only)...`);
                   targetPercent = Math.round(phasePercent * 0.4);
                 } else if (key === 'compute') {
-                  setProcessingText('Cutting background using smart AI...');
+                  setProcessingText('Removing background using AI...');
                   targetPercent = Math.round(40 + phasePercent * 0.55);
                 } else {
-                  setProcessingText('Finalizing...');
+                  setProcessingText('Finalizing image...');
                   targetPercent = 98;
                 }
                 
                 setProcessingProgress(prev => Math.max(prev, targetPercent));
               },
-              model: 'isnet', // 'isnet' is the standard model providing high quality
-              output: { format: 'image/png' } // PNG to retain perfect transparency
+              device: 'gpu', // WebGPU for insane speed
+              model: isFast ? 'small' : 'medium',
+              output: { format: 'image/webp', quality: isFast ? 0.7 : 0.9 }
             });
             
             clearInterval(progressInterval);
@@ -4091,32 +4096,34 @@ export default function App() {
                             </div>
                           )}
                           
-                          {/* Target Size Option (Compulsory/Global) */}
-                          <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                              {t('target_size')} <span className="text-red-500">*</span>
-                            </label>
-                            <div className="flex gap-2">
-                              <div className="relative flex-1">
-                                <input 
-                                  type="number" 
-                                  placeholder="e.g. 2" 
-                                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
-                                  value={toolOptions.targetSize || ''}
-                                  onChange={(e) => setToolOptions(prev => ({ ...prev, targetSize: e.target.value }))}
-                                />
+                          {/* Target Size Option for compress tools */}
+                          {(selectedTool.id === 'compress' || selectedTool.id === 'compress-jpg') && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                                {t('target_size')} <span className="text-red-500">*</span>
+                              </label>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <input 
+                                    type="number" 
+                                    placeholder="e.g. 2" 
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none"
+                                    value={toolOptions.targetSize || ''}
+                                    onChange={(e) => setToolOptions(prev => ({ ...prev, targetSize: e.target.value }))}
+                                  />
+                                </div>
+                                <select 
+                                  className="px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none bg-white font-bold text-xs text-slate-600"
+                                  value={toolOptions.sizeUnit || 'MB'}
+                                  onChange={(e) => setToolOptions(prev => ({ ...prev, sizeUnit: e.target.value as 'MB' | 'KB' }))}
+                                >
+                                  <option value="MB">{t('mb')}</option>
+                                  <option value="KB">{t('kb')}</option>
+                                </select>
                               </div>
-                              <select 
-                                className="px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none bg-white font-bold text-xs text-slate-600"
-                                value={toolOptions.sizeUnit || 'MB'}
-                                onChange={(e) => setToolOptions(prev => ({ ...prev, sizeUnit: e.target.value as 'MB' | 'KB' }))}
-                              >
-                                <option value="MB">{t('mb')}</option>
-                                <option value="KB">{t('kb')}</option>
-                              </select>
+                              <p className="text-[10px] text-slate-400 mt-1 italic">{t('target_size_desc')}</p>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1 italic">{t('target_size_desc')}</p>
-                          </div>
+                          )}
 
                           {selectedTool.id === 'protect-pdf' && (
                             <div>
@@ -4235,6 +4242,37 @@ export default function App() {
                                 value={toolOptions.watermark || ''}
                                 onChange={(e) => setToolOptions(prev => ({ ...prev, watermark: e.target.value }))}
                               />
+                            </div>
+                          )}
+
+                          {selectedTool.id === 'remove-bg' && (
+                            <div className="space-y-4">
+                              <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg border border-emerald-200 flex items-start gap-2 text-xs">
+                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <strong>100% Private (Runs on your device)</strong>
+                                  <p className="mt-0.5 opacity-90">Your files are never uploaded. It downloads an AI model the first time, which may take a moment depending on your internet speed.</p>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Quality</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, bgRemovalQuality: 'fast' }))}
+                                    className={`p-3 border-2 rounded-xl flex flex-col items-start gap-1 transition-all text-left ${toolOptions.bgRemovalQuality === 'fast' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                                  >
+                                    <span className={`text-sm font-bold ${toolOptions.bgRemovalQuality === 'fast' ? 'text-red-700' : 'text-slate-700'}`}>Fast (Small Model)</span>
+                                    <span className="text-[10px] text-slate-500 leading-tight">Downloads ~40MB model. Fastest processing.</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setToolOptions(prev => ({ ...prev, bgRemovalQuality: 'high' }))}
+                                    className={`p-3 border-2 rounded-xl flex flex-col items-start gap-1 transition-all text-left ${toolOptions.bgRemovalQuality === 'high' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                                  >
+                                    <span className={`text-sm font-bold ${toolOptions.bgRemovalQuality === 'high' ? 'text-red-700' : 'text-slate-700'}`}>High Details</span>
+                                    <span className="text-[10px] text-slate-500 leading-tight">Downloads ~80MB model. Best accuracy on edges.</span>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )}
 
