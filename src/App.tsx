@@ -2812,7 +2812,6 @@ export default function App() {
             const optimizedFileBlob = await maximizeAndCompress(firstFile);
             
             const blob = await removeBackground(optimizedFileBlob, {
-              device: 'gpu',
               progress: (key, current, total) => {
                 const phasePercent = total > 0 ? (current / total) * 100 : 0;
                 let targetPercent = 0;
