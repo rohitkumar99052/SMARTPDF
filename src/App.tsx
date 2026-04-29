@@ -2772,46 +2772,7 @@ export default function App() {
           }, 200);
 
           try {
-            // Optimization: To balance super high quality without freezing mobile browsers,
-            // we scale down to a 512px constraint.
-            const isFast = toolOptions.bgRemovalQuality === 'fast';
-            const maximizeAndCompress = async (file: File): Promise<Blob> => {
-              return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                  const canvas = document.createElement('canvas');
-                  let { width, height } = img;
-                  // Extremely small (256px) for 'fast', standard (800px) for 'high'
-                  const MAX_SIZE = isFast ? 256 : 800;
-                  
-                  if (width > MAX_SIZE || height > MAX_SIZE) {
-                    if (width > height) {
-                      height *= MAX_SIZE / width;
-                      width = MAX_SIZE;
-                    } else {
-                      width *= MAX_SIZE / height;
-                      height = MAX_SIZE;
-                    }
-                  }
-                  
-                  canvas.width = width;
-                  canvas.height = height;
-                  const ctx = canvas.getContext('2d');
-                  if (!ctx) return resolve(file); // fallback
-                  
-                  ctx.drawImage(img, 0, 0, width, height);
-                  canvas.toBlob((blob) => {
-                    resolve(blob || file);
-                  }, 'image/jpeg', isFast ? 0.6 : 0.9);
-                };
-                img.onerror = () => resolve(file); // fallback
-                img.src = URL.createObjectURL(file);
-              });
-            };
-
-            const optimizedFileBlob = await maximizeAndCompress(firstFile);
-            
-            const blob = await removeBackground(optimizedFileBlob, {
+            const blob = await removeBackground(firstFile, {
               progress: (key, current, total) => {
                 const phasePercent = total > 0 ? (current / total) * 100 : 0;
                 let targetPercent = 0;
@@ -2829,8 +2790,8 @@ export default function App() {
                 
                 setProcessingProgress(prev => Math.max(prev, targetPercent));
               },
-              model: isFast ? 'isnet_quint8' : 'isnet_fp16',
-              output: { format: 'image/webp', quality: isFast ? 0.6 : 0.85 }
+              model: 'isnet_quint8', // The smallest model by default
+              output: { format: 'image/webp', quality: 0.6 }
             });
             
             clearInterval(progressInterval);
@@ -3137,14 +3098,48 @@ export default function App() {
       // 2. Draw Transparent Subject
       ctx.drawImage(mainImg, 0, 0);
 
-      // 3. Download
-      canvas.toBlob((blob) => {
-        if (blob) {
-          saveAs(blob, `${bgOriginalName}_edited.png`);
-          setBgEditorOpen(false);
-          setNotification({ message: 'Saved successfully!', type: 'success' });
+      // 3. Download with target size support
+      let blob: Blob | null = null;
+      let finalFileName = `${bgOriginalName}_edited.png`;
+
+      if (toolOptions.targetSize && parseFloat(toolOptions.targetSize) > 0) {
+        const size = parseFloat(toolOptions.targetSize);
+        const targetBytes = Math.floor(toolOptions.sizeUnit === 'MB' ? size * 1024 * 1024 : size * 1024);
+        
+        let scale = 1.0;
+        let iter = 0;
+        // Use webp for transparency preserving compression, or jpeg if background is solid
+        const format = bgEditorColor === 'transparent' && !bgEditorCustomImage ? 'image/webp' : 'image/jpeg';
+        let quality = 0.9;
+        finalFileName = `${bgOriginalName}_edited.${format === 'image/webp' ? 'webp' : 'jpg'}`;
+        
+        while (iter < 15) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = Math.max(1, canvas.width * scale);
+          tempCanvas.height = Math.max(1, canvas.height * scale);
+          const tCtx = tempCanvas.getContext('2d');
+          tCtx?.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+          
+          blob = await new Promise<Blob | null>((resolve) => tempCanvas.toBlob(resolve, format, quality));
+          if (!blob) break;
+          
+          if (blob.size <= targetBytes * 1.05) {
+            break;
+          }
+          
+          scale *= 0.85;
+          quality = Math.max(0.1, quality - 0.05);
+          iter++;
         }
-      }, 'image/png', 1.0); // High quality PNG
+      } else {
+        blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png', 1.0));
+      }
+      
+      if (blob) {
+        saveAs(blob, finalFileName);
+        setBgEditorOpen(false);
+        setNotification({ message: 'Saved successfully!', type: 'success' });
+      }
     } catch (err) {
       console.error('Failed to save background:', err);
       setNotification({ message: 'Failed to save image', type: 'error' });
@@ -3937,14 +3932,14 @@ export default function App() {
                       <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm", tool.color)}>
                         <tool.icon className="w-6 h-6" />
                       </div>
-                      <div className="flex-1 min-w-0 border-b border-slate-100 pb-2.5">
-                        <div className="flex justify-between items-center mb-0">
-                          <h3 className="font-bold text-slate-800 text-[12px] leading-tight pr-2 truncate">{tTool.title}</h3>
+                      <div className="flex-1 min-w-0 border-b border-slate-100 pb-3">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <h3 className="font-bold text-slate-800 text-sm leading-snug pr-2">{tTool.title}</h3>
                           {tool.featured && (
-                            <span className="text-[8px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-black whitespace-nowrap shrink-0">NEW</span>
+                            <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-black whitespace-nowrap shrink-0 mt-0.5">NEW</span>
                           )}
                         </div>
-                        <p className="text-slate-500 text-[10px] line-clamp-1 opacity-70">{tTool.description}</p>
+                        <p className="text-slate-500 text-xs leading-tight opacity-80">{tTool.description}</p>
                       </div>
                     </div>
                   );
@@ -4096,7 +4091,7 @@ export default function App() {
                           )}
                           
                           {/* Target Size Option for compress tools */}
-                          {(selectedTool.id === 'compress' || selectedTool.id === 'compress-jpg') && (
+                          {(selectedTool.id === 'compress' || selectedTool.id === 'compress-jpg' || selectedTool.id === 'remove-bg') && (
                             <div>
                               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                                 {t('target_size')} <span className="text-red-500">*</span>
@@ -4251,25 +4246,6 @@ export default function App() {
                                 <div>
                                   <strong>100% Private (Runs on your device)</strong>
                                   <p className="mt-0.5 opacity-90">Your files are never uploaded. It downloads an AI model the first time, which may take a moment depending on your internet speed.</p>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Quality</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <button
-                                    onClick={() => setToolOptions(prev => ({ ...prev, bgRemovalQuality: 'fast' }))}
-                                    className={`p-3 border-2 rounded-xl flex flex-col items-start gap-1 transition-all text-left ${toolOptions.bgRemovalQuality === 'fast' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:bg-slate-50'}`}
-                                  >
-                                    <span className={`text-sm font-bold ${toolOptions.bgRemovalQuality === 'fast' ? 'text-red-700' : 'text-slate-700'}`}>Fast (Small Model)</span>
-                                    <span className="text-[10px] text-slate-500 leading-tight">Downloads ~40MB model. Fastest processing.</span>
-                                  </button>
-                                  <button
-                                    onClick={() => setToolOptions(prev => ({ ...prev, bgRemovalQuality: 'high' }))}
-                                    className={`p-3 border-2 rounded-xl flex flex-col items-start gap-1 transition-all text-left ${toolOptions.bgRemovalQuality === 'high' ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:bg-slate-50'}`}
-                                  >
-                                    <span className={`text-sm font-bold ${toolOptions.bgRemovalQuality === 'high' ? 'text-red-700' : 'text-slate-700'}`}>High Details</span>
-                                    <span className="text-[10px] text-slate-500 leading-tight">Downloads ~80MB model. Best accuracy on edges.</span>
-                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -5332,7 +5308,7 @@ export default function App() {
       {/* Background Removal Editor Modal */}
       <AnimatePresence>
         {bgEditorOpen && bgEditorImage && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 overflow-hidden">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center md:p-4 overflow-hidden">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -5344,10 +5320,10 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[92vh] md:h-[85vh]"
+              className="relative w-full md:max-w-4xl bg-white md:rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[100dvh] md:h-[85vh] md:max-h-[92vh]"
             >
               {/* Preview Area */}
-              <div className="flex-1 bg-slate-50 flex items-center justify-center relative overflow-hidden min-h-[250px] md:min-h-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+              <div className="flex-1 bg-slate-50 flex items-center justify-center relative overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
                 {/* Transparency Checkerboard */}
                 {bgEditorColor === 'transparent' && !bgEditorCustomImage && (
                   <div className="absolute inset-0 z-0" style={{ 
@@ -5374,7 +5350,7 @@ export default function App() {
               </div>
 
               {/* Controls Area */}
-              <div className="w-full md:w-80 bg-white p-5 md:p-6 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-slate-100 overflow-y-auto max-h-[45vh] md:max-h-none">
+              <div className="w-full md:w-80 bg-white p-5 md:p-6 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-slate-100 overflow-y-auto shrink-0 md:max-h-none shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:shadow-none z-20 relative">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-slate-800">{t('bg_editor')}</h3>
                   <button onClick={() => setBgEditorOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
