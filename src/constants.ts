@@ -25,11 +25,22 @@ import {
   Eraser,
   Gamepad2,
   GraduationCap,
-  Database
+  Database,
+  Cpu
 } from 'lucide-react';
 import { PDFTool, ToolCategory } from './types';
 
 export const TOOLS: PDFTool[] = [
+  {
+    id: 'os-mcq-quiz',
+    title: 'Operating Systems MCQ Quiz',
+    description: 'Practice 80 NPTEL Operating Systems questions (Weeks 1–8) with shuffled options, instant scoring, and detailed step-by-step solutions.',
+    icon: Cpu,
+    category: ['All', 'Workflows', 'PDF Intelligence'],
+    color: 'bg-violet-700',
+    action: 'quiz',
+    featured: true
+  },
   {
     id: 'dbms-mcq-quiz',
     title: 'DBMS NPTEL MCQ Quiz',
