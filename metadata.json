@@ -1,5 +1,6 @@
 {
   "name": "SmartPdf",
-  "description": "A comprehensive PDF tool suite for merging, splitting, compressing, and converting PDF documents.",
-  "requestFramePermissions": []
+  "description": "A comprehensive PDF and study tool suite including DBMS, OS, and Soft Skills MCQ assessments, merging, splitting, compressing, and converting PDF documents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
