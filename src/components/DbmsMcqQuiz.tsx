@@ -33,8 +33,8 @@ export const DbmsMcqQuiz: React.FC = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); // { questionId: optionId }
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-  const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(false);
-  const [shuffleOptions, setShuffleOptions] = useState<boolean>(false);
+  const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(true);
+  const [shuffleOptions, setShuffleOptions] = useState<boolean>(true);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect' | 'unanswered'>('all');
   const [quizKey, setQuizKey] = useState<number>(0);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -530,13 +530,14 @@ export const DbmsMcqQuiz: React.FC = () => {
                   </h4>
 
                   <div className="space-y-2">
-                    {item.question.options.map(opt => {
-                      const isUserChoice = userAnswerId === opt.id;
-                      const isCorrectChoice = opt.id === item.question.correctOptionId;
+                    {item.shuffledOptions.map((opt, optIndex) => {
+                      const optionLetter = String.fromCharCode(65 + optIndex);
+                      const isUserChoice = userAnswerId === opt.originalId;
+                      const isCorrectChoice = opt.originalId === item.question.correctOptionId;
 
                       return (
                         <div
-                          key={opt.id}
+                          key={opt.originalId}
                           className={`p-3 rounded-xl border text-xs sm:text-sm flex items-center justify-between gap-3 ${
                             isCorrectChoice
                               ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
@@ -546,7 +547,7 @@ export const DbmsMcqQuiz: React.FC = () => {
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
-                            <span className="font-bold uppercase w-5">{opt.id})</span>
+                            <span className="font-bold uppercase w-5">{optionLetter})</span>
                             <span>{opt.text}</span>
                           </div>
                           {isCorrectChoice && (

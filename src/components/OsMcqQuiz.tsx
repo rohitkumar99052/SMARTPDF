@@ -33,8 +33,8 @@ export const OsMcqQuiz: React.FC = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); // { questionId: optionId }
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-  const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(false);
-  const [shuffleOptions, setShuffleOptions] = useState<boolean>(false);
+  const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(true);
+  const [shuffleOptions, setShuffleOptions] = useState<boolean>(true);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect' | 'unanswered'>('all');
   const [quizKey, setQuizKey] = useState<number>(0);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -527,9 +527,10 @@ export const OsMcqQuiz: React.FC = () => {
 
                     {/* Options status */}
                     <div className="space-y-1.5 pt-1">
-                      {item.question.options.map(opt => {
-                        const isChosen = userAns === opt.id;
-                        const isRightAnswer = item.question.correctOptionId === opt.id;
+                      {item.shuffledOptions.map((opt, optIndex) => {
+                        const optionLetter = String.fromCharCode(65 + optIndex);
+                        const isChosen = userAns === opt.originalId;
+                        const isRightAnswer = item.question.correctOptionId === opt.originalId;
 
                         let style = 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300';
                         if (isRightAnswer) {
@@ -540,10 +541,10 @@ export const OsMcqQuiz: React.FC = () => {
 
                         return (
                           <div
-                            key={opt.id}
+                            key={opt.originalId}
                             className={`p-2 rounded-xl text-xs border flex items-start gap-2 ${style}`}
                           >
-                            <span className="font-bold uppercase w-5 text-center mt-0.5">{opt.id}.</span>
+                            <span className="font-bold uppercase w-5 text-center mt-0.5">{optionLetter}.</span>
                             <span className="flex-1 break-words leading-tight">{opt.text}</span>
                             {isRightAnswer && (
                               <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
