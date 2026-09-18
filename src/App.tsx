@@ -3585,7 +3585,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="max-w-7xl mx-auto px-4 pt-4 pb-12">
+      <main className={cn("max-w-7xl mx-auto pb-12", selectedTool?.id === 'nptel-soft-skills' ? "px-1 sm:px-4 pt-1 sm:pt-4" : "px-4 pt-4")}>
         <AnimatePresence mode="wait">
           {showAdminDashboard ? (
             <motion.div

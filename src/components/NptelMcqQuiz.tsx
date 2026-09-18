@@ -165,43 +165,43 @@ export default function NptelMcqQuiz() {
   const progressPercent = Math.round((answeredCount / (processedQuestions.length || 1)) * 100);
 
   return (
-    <div id="nptel-quiz-container" className="w-full max-w-5xl mx-auto space-y-6">
+    <div id="nptel-quiz-container" className="w-full max-w-5xl mx-auto space-y-3 sm:space-y-6">
       {/* Top Header Card */}
-      <div id="quiz-header-banner" className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+      <div id="quiz-header-banner" className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-indigo-500/30 border border-indigo-400/30 rounded-full text-xs font-bold uppercase tracking-wider text-indigo-200">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-indigo-500/30 border border-indigo-400/30 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider text-indigo-200">
                 NPTEL Soft Skills
               </span>
-              <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> 80 Total Questions
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-[11px] sm:text-xs font-bold text-emerald-300 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 80 Total Questions
               </span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <h2 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight">
               Objective MCQ Practice & Assessment
             </h2>
-            <p className="text-indigo-200/90 text-sm max-w-2xl leading-relaxed">
+            <p className="text-indigo-200/90 text-xs sm:text-sm max-w-2xl leading-relaxed hidden sm:block">
               Divided into 4 parts of 20 questions each. Questions and options are shuffled for realistic exam practice. Check your score and view explanations after submitting!
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               id="toggle-shuffle-questions-btn"
               onClick={() => {
                 setShuffleQuestions(p => !p);
                 setQuizKey(k => k + 1);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+              className={`px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition-all border ${
                 shuffleQuestions
                   ? 'bg-indigo-600/60 border-indigo-400 text-white shadow-sm'
                   : 'bg-white/10 border-white/20 text-indigo-200 hover:bg-white/20'
               }`}
               title="Shuffle Questions"
             >
-              <Shuffle className="w-4 h-4" />
+              <Shuffle className="w-3.5 h-3.5" />
               {shuffleQuestions ? 'Q-Order Shuffled' : 'Sequential Qs'}
             </button>
 
@@ -211,35 +211,35 @@ export default function NptelMcqQuiz() {
                 setShuffleOptions(p => !p);
                 setQuizKey(k => k + 1);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+              className={`px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition-all border ${
                 shuffleOptions
                   ? 'bg-indigo-600/60 border-indigo-400 text-white shadow-sm'
                   : 'bg-white/10 border-white/20 text-indigo-200 hover:bg-white/20'
               }`}
               title="Shuffle Options inside questions"
             >
-              <Shuffle className="w-4 h-4" />
+              <Shuffle className="w-3.5 h-3.5" />
               {shuffleOptions ? 'Options Shuffled' : 'Fixed Options'}
             </button>
 
             <button
               id="reset-quiz-btn"
               onClick={resetQuiz}
-              className="px-4 py-2 bg-white text-indigo-900 hover:bg-indigo-50 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 active:scale-95"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white text-indigo-900 hover:bg-indigo-50 font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl transition-all shadow-md flex items-center gap-1 active:scale-95 ml-auto sm:ml-0"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Quiz
+              <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Reset Quiz
             </button>
           </div>
         </div>
 
         {/* 4 Parts Tabs */}
-        <div className="mt-8 pt-6 border-t border-indigo-700/50">
-          <div className="text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-3 flex items-center justify-between">
-            <span>Select Practice Part (4 Parts of 20 Questions):</span>
-            <span>{selectedPart === 0 ? 'All 80 Questions' : `Part ${selectedPart} of 4`}</span>
+        <div className="mt-4 sm:mt-8 pt-3 sm:pt-6 border-t border-indigo-700/50">
+          <div className="text-[11px] sm:text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2 sm:mb-3 flex items-center justify-between">
+            <span>Select Practice Part:</span>
+            <span>{selectedPart === 0 ? 'All 80 Qs' : `Part ${selectedPart} of 4`}</span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
             {NPTEL_PARTS.map(part => {
               const isCurrent = selectedPart === part.id;
               return (
@@ -247,21 +247,21 @@ export default function NptelMcqQuiz() {
                   key={part.id}
                   id={`part-tab-${part.id}`}
                   onClick={() => handleSelectPart(part.id)}
-                  className={`p-3 rounded-2xl text-left transition-all border relative overflow-hidden ${
+                  className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl text-left transition-all border relative overflow-hidden ${
                     isCurrent
                       ? 'bg-white text-slate-900 border-white shadow-lg font-bold'
                       : 'bg-indigo-950/40 border-indigo-700/40 text-indigo-100 hover:bg-indigo-800/40'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold uppercase">Part {part.id}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                    <span className="text-[11px] sm:text-xs font-bold uppercase">Part {part.id}</span>
+                    <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       isCurrent ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-800 text-indigo-200'
                     }`}>
                       20 Qs
                     </span>
                   </div>
-                  <div className="text-[11px] font-medium leading-snug line-clamp-2 opacity-90">
+                  <div className="text-[10px] sm:text-[11px] font-medium leading-snug line-clamp-1 sm:line-clamp-2 opacity-90">
                     {part.title.replace(`Part ${part.id}: `, '')}
                   </div>
                 </button>
@@ -272,22 +272,22 @@ export default function NptelMcqQuiz() {
             <button
               id="part-tab-all"
               onClick={() => handleSelectPart(0)}
-              className={`p-3 rounded-2xl text-left transition-all border relative col-span-2 md:col-span-1 ${
+              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl text-left transition-all border relative col-span-2 sm:col-span-1 ${
                 selectedPart === 0
                   ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg font-bold'
                   : 'bg-indigo-950/40 border-indigo-700/40 text-indigo-100 hover:bg-indigo-800/40'
               }`}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold uppercase">All Parts</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+              <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                <span className="text-[11px] sm:text-xs font-bold uppercase">All Parts</span>
+                <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                   selectedPart === 0 ? 'bg-amber-100 text-amber-900' : 'bg-indigo-800 text-indigo-200'
                 }`}>
                   80 Qs
                 </span>
               </div>
-              <div className="text-[11px] font-medium leading-snug opacity-90">
-                Full 80 MCQ Mock Exam
+              <div className="text-[10px] sm:text-[11px] font-medium leading-snug opacity-90 truncate">
+                Full 80 Mock Exam
               </div>
             </button>
           </div>
@@ -298,31 +298,31 @@ export default function NptelMcqQuiz() {
       {!isSubmitted ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Question Panel (3 Columns) */}
-          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-3 space-y-2 sm:space-y-6">
             {/* Progress Tracker */}
-            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
               <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 flex-wrap">
-                <span className="text-sm font-bold text-slate-800">
+                <span className="text-xs sm:text-sm font-bold text-slate-800">
                   Question {activeQuestionIndex + 1} of {processedQuestions.length}
                 </span>
-                <span className="text-[11px] px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-medium">
+                <span className="text-[10px] sm:text-[11px] px-2 py-0.5 sm:py-1 bg-slate-100 text-slate-600 rounded-md font-medium">
                   {currentItem?.question.week}
                 </span>
                 <button
                   id="mobile-palette-toggle-btn"
                   onClick={() => setShowMobilePalette(true)}
-                  className="lg:hidden ml-auto px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+                  className="lg:hidden ml-auto px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-[11px] font-bold rounded-lg flex items-center gap-1 active:scale-95 transition-all"
                 >
-                  <ListChecks className="w-3.5 h-3.5" />
+                  <ListChecks className="w-3 h-3" />
                   <span>Palette ({answeredCount}/{processedQuestions.length})</span>
                 </button>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-3">
-                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
+              <div className="flex items-center justify-between sm:justify-end gap-2.5">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap">
                   {answeredCount} of {processedQuestions.length} Answered
                 </span>
-                <div className="w-24 sm:w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-20 sm:w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
                     style={{ width: `${progressPercent}%` }}
@@ -337,20 +337,25 @@ export default function NptelMcqQuiz() {
                 key={currentItem.question.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-4 sm:space-y-6"
+                className="bg-white rounded-xl sm:rounded-3xl p-3 sm:p-6 md:p-8 border border-slate-200 shadow-xs sm:shadow-sm space-y-3 sm:space-y-6"
               >
                 {/* Question Statement */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
-                    Select the Correct Option
-                  </span>
-                  <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-relaxed whitespace-pre-line">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] sm:text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                      Question {activeQuestionIndex + 1}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                      {currentItem.question.week}
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-lg md:text-xl font-bold text-slate-900 leading-snug break-words">
                     {currentItem.question.question}
                   </h3>
                 </div>
 
                 {/* Shuffled Options */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-2 sm:space-y-3 pt-1">
                   {currentItem.shuffledOptions.map((opt, optIndex) => {
                     const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D
                     const isSelected = selectedAnswers[currentItem.question.id] === opt.originalId;
@@ -360,28 +365,28 @@ export default function NptelMcqQuiz() {
                         key={opt.originalId}
                         id={`option-${currentItem.question.id}-${opt.originalId}`}
                         onClick={() => handleSelectOption(currentItem.question.id, opt.originalId)}
-                        className={`w-full p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all ${
+                        className={`w-full px-2.5 py-2 sm:p-4 rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 sm:gap-3.5 transition-all ${
                           isSelected
-                            ? 'border-indigo-600 bg-indigo-50/60 shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70'
+                            ? 'border-indigo-600 bg-indigo-50/90 shadow-xs ring-1 ring-indigo-500/30'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 bg-white'
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 transition-colors ${
                           isSelected
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700'
                         }`}>
                           {optionLetter}
                         </div>
-                        <div className="flex-1 text-sm md:text-base text-slate-800 pt-1 font-medium leading-normal">
+                        <div className="flex-1 text-xs sm:text-sm md:text-base text-slate-800 font-medium leading-snug break-words">
                           {opt.text}
                         </div>
-                        <div className={`w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center shrink-0 transition-all ${
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border sm:border-2 flex items-center justify-center shrink-0 transition-all ${
                           isSelected
                             ? 'border-indigo-600 bg-indigo-600 text-white'
                             : 'border-slate-300'
                         }`}>
-                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          {isSelected && <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />}
                         </div>
                       </button>
                     );
@@ -389,32 +394,32 @@ export default function NptelMcqQuiz() {
                 </div>
 
                 {/* Navigation Buttons */}
-                <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-4">
+                <div className="pt-3 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
                   <button
                     id="prev-question-btn"
                     disabled={activeQuestionIndex === 0}
                     onClick={() => setActiveQuestionIndex(i => Math.max(0, i - 1))}
-                    className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-all"
+                    className="px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl border border-slate-300 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-all"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Previous
+                    <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Previous
                   </button>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     {activeQuestionIndex < processedQuestions.length - 1 ? (
                       <button
                         id="next-question-btn"
                         onClick={() => setActiveQuestionIndex(i => Math.min(processedQuestions.length - 1, i + 1))}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-md hover:shadow-indigo-200 active:scale-95 transition-all"
+                        className="px-4 py-2 sm:px-6 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-lg sm:rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
                       >
-                        Next <ArrowRight className="w-4 h-4" />
+                        Next <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     ) : (
                       <button
                         id="submit-quiz-btn"
                         onClick={handleSubmit}
-                        className="px-7 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-lg hover:shadow-emerald-200 active:scale-95 transition-all"
+                        className="px-4 py-2 sm:px-7 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-lg sm:rounded-xl flex items-center gap-1.5 shadow-lg active:scale-95 transition-all"
                       >
-                        <CheckCircle2 className="w-4 h-4" /> Submit Quiz
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Submit Quiz
                       </button>
                     )}
                   </div>
