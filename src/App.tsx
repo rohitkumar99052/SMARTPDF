@@ -71,6 +71,7 @@ import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import FlappyBird from './components/FlappyBird';
 import NptelMcqQuiz from './components/NptelMcqQuiz';
+import { DbmsMcqQuiz } from './components/DbmsMcqQuiz';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -797,6 +798,8 @@ export default function App() {
       'tool_remove-bg_desc': 'Instantly remove image backgrounds with AI precision. Perfect for profile photos and product images.',
       'tool_nptel-soft-skills_title': 'NPTEL Soft Skills MCQ',
       'tool_nptel-soft-skills_desc': '80 objective questions across 4 parts with shuffled questions & options, instant score check, and correct answers with explanations.',
+      'tool_dbms-mcq-quiz_title': 'DBMS NPTEL MCQ Quiz',
+      'tool_dbms-mcq-quiz_desc': '80 NPTEL DBMS objective questions across Assignments 1 to 8 with shuffled options, instant score check, and detailed solutions.',
       'remove_bg_note': 'Note: The first use might take a moment to load the AI model for high precision.',
       'no_background': 'No Background',
       'bg_editor': 'Background Editor',
@@ -914,6 +917,8 @@ export default function App() {
       'tool_remove-bg_desc': 'AI की मदद से इमेज का बैकग्राउंड तुरंत हटाएं। प्रोफाइल फोटो और प्रोडक्ट इमेज के लिए बेहतरीन।',
       'tool_nptel-soft-skills_title': 'NPTEL सॉफ्ट स्किल्स MCQ',
       'tool_nptel-soft-skills_desc': '80 ऑब्जेक्टिव प्रश्न 4 भागों में, शफल विकल्प, सबमिट के बाद सही उत्तर और स्कोर व्याख्या के साथ।',
+      'tool_dbms-mcq-quiz_title': 'DBMS NPTEL MCQ Quiz',
+      'tool_dbms-mcq-quiz_desc': '80 NPTEL DBMS ऑब्जेक्टिव प्रश्न (असाइनमेंट 1 से 8), शफल विकल्प, इंस्टेंट स्कोर और स्टेप-बाय-स्टेप व्याख्या।',
       'remove_bg_note': 'नोट: पहली बार इस्तेमाल करने पर AI मॉडल लोड होने में थोड़ा समय लग सकता है।',
       'no_background': 'कोई बैकग्राउंड नहीं',
       'bg_editor': 'बैकग्राउंड एडिटर',
@@ -3585,7 +3590,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className={cn("max-w-7xl mx-auto pb-12", selectedTool?.id === 'nptel-soft-skills' ? "px-1 sm:px-4 pt-1 sm:pt-4" : "px-4 pt-4")}>
+      <main className={cn("max-w-7xl mx-auto pb-12", (selectedTool?.id === 'nptel-soft-skills' || selectedTool?.id === 'dbms-mcq-quiz') ? "px-1 sm:px-4 pt-1 sm:pt-4" : "px-4 pt-4")}>
         <AnimatePresence mode="wait">
           {showAdminDashboard ? (
             <motion.div
@@ -3812,17 +3817,29 @@ export default function App() {
                 <p className="text-slate-500 text-xl max-w-2xl mx-auto">
                   {t('hero_subtitle')}
                 </p>
-                <div className="pt-2 flex justify-center">
+                <div className="pt-2 flex flex-wrap justify-center gap-3">
+                  <button
+                    id="quick-start-dbms-btn"
+                    onClick={() => {
+                      const dbmsTool = TOOLS.find(t => t.id === 'dbms-mcq-quiz');
+                      if (dbmsTool) setSelectedTool(dbmsTool);
+                    }}
+                    className="group inline-flex items-center gap-2.5 px-5 py-3 bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-800 hover:to-blue-800 text-white font-bold rounded-2xl shadow-lg hover:shadow-cyan-200 transition-all active:scale-95 text-sm"
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 animate-ping" />
+                    <span>🗄️ DBMS NPTEL 80 MCQ Quiz (Assignments 1–8 • Shuffled Options)</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
                   <button
                     id="quick-start-nptel-btn"
                     onClick={() => {
                       const nptelTool = TOOLS.find(t => t.id === 'nptel-soft-skills');
                       if (nptelTool) setSelectedTool(nptelTool);
                     }}
-                    className="group inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-emerald-200 transition-all active:scale-95 text-sm"
+                    className="group inline-flex items-center gap-2.5 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-emerald-200 transition-all active:scale-95 text-sm"
                   >
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
-                    <span>🎯 NPTEL Soft Skills 80 MCQ Practice (4 Parts • Shuffled Options • Scorecard)</span>
+                    <span>🎯 NPTEL Soft Skills 80 MCQ Practice (4 Parts)</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -3845,20 +3862,32 @@ export default function App() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <div className="mt-2.5 pb-2">
+                  <div className="mt-2.5 pb-2 grid grid-cols-2 gap-1.5">
+                    <button
+                      id="mobile-quick-start-dbms-btn"
+                      onClick={() => {
+                        const dbmsTool = TOOLS.find(t => t.id === 'dbms-mcq-quiz');
+                        if (dbmsTool) setSelectedTool(dbmsTool);
+                      }}
+                      className="w-full py-2 px-2.5 bg-cyan-800 hover:bg-cyan-700 text-white font-bold text-[11px] rounded-xl shadow flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-1 truncate">
+                        <span>🗄️ DBMS Quiz</span>
+                      </span>
+                      <ArrowRight className="w-3 h-3 shrink-0" />
+                    </button>
                     <button
                       id="mobile-quick-start-nptel-btn"
                       onClick={() => {
                         const nptelTool = TOOLS.find(t => t.id === 'nptel-soft-skills');
                         if (nptelTool) setSelectedTool(nptelTool);
                       }}
-                      className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow flex items-center justify-between"
+                      className="w-full py-2 px-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-xl shadow flex items-center justify-between"
                     >
-                      <span className="flex items-center gap-1.5 truncate">
-                        <span>🎯 NPTEL 80 MCQ Practice</span>
-                        <span className="text-[10px] bg-emerald-700/60 px-1.5 py-0.5 rounded">4 Parts</span>
+                      <span className="flex items-center gap-1 truncate">
+                        <span>🎯 Soft Skills</span>
                       </span>
-                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                      <ArrowRight className="w-3 h-3 shrink-0" />
                     </button>
                   </div>
                 </div>
@@ -3997,7 +4026,11 @@ export default function App() {
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back to all tools
               </button>
 
-              {selectedTool.id === 'nptel-soft-skills' ? (
+              {selectedTool.id === 'dbms-mcq-quiz' ? (
+                <div className="w-full">
+                  <DbmsMcqQuiz />
+                </div>
+              ) : selectedTool.id === 'nptel-soft-skills' ? (
                 <div className="w-full">
                   <NptelMcqQuiz />
                 </div>

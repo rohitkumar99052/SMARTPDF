@@ -24,11 +24,22 @@ import {
   Crop,
   Eraser,
   Gamepad2,
-  GraduationCap
+  GraduationCap,
+  Database
 } from 'lucide-react';
 import { PDFTool, ToolCategory } from './types';
 
 export const TOOLS: PDFTool[] = [
+  {
+    id: 'dbms-mcq-quiz',
+    title: 'DBMS NPTEL MCQ Quiz',
+    description: 'Practice 80 NPTEL DBMS questions (Assignments 1–8) with shuffled options, instant scoring, and detailed step-by-step solutions.',
+    icon: Database,
+    category: ['All', 'Workflows', 'PDF Intelligence'],
+    color: 'bg-cyan-700',
+    action: 'quiz',
+    featured: true
+  },
   {
     id: 'nptel-soft-skills',
     title: 'NPTEL Soft Skills MCQ',
