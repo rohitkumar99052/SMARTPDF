@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   RotateCw,
   Plus,
+  ArrowRight,
   Trash2,
   LogOut,
   History,
@@ -69,6 +70,7 @@ import { removeBackground } from '@imgly/background-removal';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import FlappyBird from './components/FlappyBird';
+import NptelMcqQuiz from './components/NptelMcqQuiz';
 
 // Use Vite's native worker loading for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -793,6 +795,8 @@ export default function App() {
       'edit_pdf_instruction': 'Click anywhere on the PDF pages to add text. Double-click to edit or drag to reposition.',
       'tool_remove-bg_title': 'Remove Background',
       'tool_remove-bg_desc': 'Instantly remove image backgrounds with AI precision. Perfect for profile photos and product images.',
+      'tool_nptel-soft-skills_title': 'NPTEL Soft Skills MCQ',
+      'tool_nptel-soft-skills_desc': '80 objective questions across 4 parts with shuffled questions & options, instant score check, and correct answers with explanations.',
       'remove_bg_note': 'Note: The first use might take a moment to load the AI model for high precision.',
       'no_background': 'No Background',
       'bg_editor': 'Background Editor',
@@ -908,6 +912,8 @@ export default function App() {
       'finalizing_page': 'पेज {current} / {total} को अंतिम रूप दिया जा रहा है...',
       'tool_remove-bg_title': 'रिमूव बैकग्राउंड (AI)',
       'tool_remove-bg_desc': 'AI की मदद से इमेज का बैकग्राउंड तुरंत हटाएं। प्रोफाइल फोटो और प्रोडक्ट इमेज के लिए बेहतरीन।',
+      'tool_nptel-soft-skills_title': 'NPTEL सॉफ्ट स्किल्स MCQ',
+      'tool_nptel-soft-skills_desc': '80 ऑब्जेक्टिव प्रश्न 4 भागों में, शफल विकल्प, सबमिट के बाद सही उत्तर और स्कोर व्याख्या के साथ।',
       'remove_bg_note': 'नोट: पहली बार इस्तेमाल करने पर AI मॉडल लोड होने में थोड़ा समय लग सकता है।',
       'no_background': 'कोई बैकग्राउंड नहीं',
       'bg_editor': 'बैकग्राउंड एडिटर',
@@ -3806,6 +3812,20 @@ export default function App() {
                 <p className="text-slate-500 text-xl max-w-2xl mx-auto">
                   {t('hero_subtitle')}
                 </p>
+                <div className="pt-2 flex justify-center">
+                  <button
+                    id="quick-start-nptel-btn"
+                    onClick={() => {
+                      const nptelTool = TOOLS.find(t => t.id === 'nptel-soft-skills');
+                      if (nptelTool) setSelectedTool(nptelTool);
+                    }}
+                    className="group inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-emerald-200 transition-all active:scale-95 text-sm"
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
+                    <span>🎯 NPTEL Soft Skills 80 MCQ Practice (4 Parts • Shuffled Options • Scorecard)</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
               </div>
 
               {/* Categories */}
@@ -3824,6 +3844,22 @@ export default function App() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                  </div>
+                  <div className="mt-2.5 pb-2">
+                    <button
+                      id="mobile-quick-start-nptel-btn"
+                      onClick={() => {
+                        const nptelTool = TOOLS.find(t => t.id === 'nptel-soft-skills');
+                        if (nptelTool) setSelectedTool(nptelTool);
+                      }}
+                      className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <span>🎯 NPTEL 80 MCQ Practice</span>
+                        <span className="text-[10px] bg-emerald-700/60 px-1.5 py-0.5 rounded">4 Parts</span>
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    </button>
                   </div>
                 </div>
 
@@ -3976,6 +4012,8 @@ export default function App() {
 
                   {selectedTool.id === 'flappy-bird' ? (
                     <FlappyBird />
+                  ) : selectedTool.id === 'nptel-soft-skills' ? (
+                    <NptelMcqQuiz />
                   ) : (
                     /* Upload Area */
                     <div 

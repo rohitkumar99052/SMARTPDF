@@ -23,11 +23,22 @@ import {
   FileCheck,
   Crop,
   Eraser,
-  Gamepad2
+  Gamepad2,
+  GraduationCap
 } from 'lucide-react';
 import { PDFTool, ToolCategory } from './types';
 
 export const TOOLS: PDFTool[] = [
+  {
+    id: 'nptel-soft-skills',
+    title: 'NPTEL Soft Skills MCQ',
+    description: 'Practice 80 NPTEL Soft Skills objective questions in 4 parts with shuffled options, instant score check & explanations.',
+    icon: GraduationCap,
+    category: ['All', 'Workflows', 'PDF Intelligence'],
+    color: 'bg-emerald-600',
+    action: 'quiz',
+    featured: true
+  },
   {
     id: 'remove-bg',
     title: 'Remove Background',
