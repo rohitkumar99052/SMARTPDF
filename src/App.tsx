@@ -3988,34 +3988,37 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-4xl mx-auto"
+              className="w-full max-w-5xl mx-auto"
             >
               <button 
                 onClick={() => { setSelectedTool(null); setFiles([]); }}
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-8 transition-colors font-semibold"
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 sm:mb-6 transition-colors font-semibold px-2 py-1.5 rounded-lg hover:bg-slate-100 w-fit text-sm sm:text-base"
               >
-                <ArrowLeft className="w-5 h-5" /> Back to all tools
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back to all tools
               </button>
 
-              <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-                <div className={cn("h-2 w-full", selectedTool.color)} />
-                <div className="p-8 md:p-12 space-y-8">
-                  <div className="flex items-center gap-6">
-                    <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg", selectedTool.color)}>
-                      <selectedTool.icon className="w-8 h-8" />
+              {selectedTool.id === 'nptel-soft-skills' ? (
+                <div className="w-full">
+                  <NptelMcqQuiz />
+                </div>
+              ) : selectedTool.id === 'flappy-bird' ? (
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100 overflow-hidden p-3 sm:p-8">
+                  <FlappyBird />
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+                  <div className={cn("h-2 w-full", selectedTool.color)} />
+                  <div className="p-4 sm:p-8 md:p-12 space-y-6 sm:space-y-8">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <div className={cn("w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-md shrink-0", selectedTool.color)}>
+                        <selectedTool.icon className="w-6 h-6 sm:w-8 sm:h-8" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl sm:text-3xl font-bold text-slate-800">{translateTool(selectedTool).title}</h2>
+                        <p className="text-slate-500 text-xs sm:text-sm mt-1">{translateTool(selectedTool).description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-3xl font-bold text-slate-800">{translateTool(selectedTool).title}</h2>
-                      <p className="text-slate-500 mt-1">{translateTool(selectedTool).description}</p>
-                    </div>
-                  </div>
-
-                  {selectedTool.id === 'flappy-bird' ? (
-                    <FlappyBird />
-                  ) : selectedTool.id === 'nptel-soft-skills' ? (
-                    <NptelMcqQuiz />
-                  ) : (
-                    /* Upload Area */
+                    {/* Upload Area */}
                     <div 
                       className={cn(
                         "border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-300",
@@ -4380,9 +4383,9 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  )}
                 </div>
               </div>
+            )}
 
               {/* Tool Info Section */}
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">

@@ -12,7 +12,9 @@ import {
   BookOpen,
   Filter,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  ListChecks,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NPTEL_QUESTIONS, NPTEL_PARTS, Question } from '../data/nptelQuestions';
@@ -39,6 +41,7 @@ export default function NptelMcqQuiz() {
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect' | 'unanswered'>('all');
   const [quizKey, setQuizKey] = useState<number>(0); // increment to re-shuffle
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showMobilePalette, setShowMobilePalette] = useState<boolean>(false);
 
   // Filter raw questions based on selected part
   const baseQuestions = useMemo(() => {
@@ -295,26 +298,31 @@ export default function NptelMcqQuiz() {
       {!isSubmitted ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Question Panel (3 Columns) */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* Progress Tracker */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-700">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 flex-wrap">
+                <span className="text-sm font-bold text-slate-800">
                   Question {activeQuestionIndex + 1} of {processedQuestions.length}
                 </span>
-                <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-medium">
+                <span className="text-[11px] px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg font-medium">
                   {currentItem?.question.week}
                 </span>
-                <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-lg truncate max-w-[200px]">
-                  {currentItem?.question.topic}
-                </span>
+                <button
+                  id="mobile-palette-toggle-btn"
+                  onClick={() => setShowMobilePalette(true)}
+                  className="lg:hidden ml-auto px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <ListChecks className="w-3.5 h-3.5" />
+                  <span>Palette ({answeredCount}/{processedQuestions.length})</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between sm:justify-end gap-3">
                 <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
                   {answeredCount} of {processedQuestions.length} Answered
                 </span>
-                <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-24 sm:w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
                     style={{ width: `${progressPercent}%` }}
@@ -329,7 +337,7 @@ export default function NptelMcqQuiz() {
                 key={currentItem.question.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6"
+                className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-4 sm:space-y-6"
               >
                 {/* Question Statement */}
                 <div className="space-y-2">
@@ -750,6 +758,101 @@ export default function NptelMcqQuiz() {
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md"
                 >
                   Yes, Submit Now
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Mobile Question Palette Modal / Bottom Sheet */}
+        {showMobilePalette && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobilePalette(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl max-h-[85vh] flex flex-col z-10"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-800 text-base">Question Palette</h4>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold">
+                    {answeredCount} of {processedQuestions.length} Done
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowMobilePalette(false)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center justify-around py-3 text-xs text-slate-600 border-b border-slate-100 bg-slate-50/50 rounded-xl my-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-indigo-600" />
+                  <span>Answered</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-slate-100 border border-slate-300" />
+                  <span>Unanswered</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded ring-2 ring-indigo-600 bg-white" />
+                  <span>Current</span>
+                </div>
+              </div>
+
+              {/* Numbered Grid */}
+              <div className="grid grid-cols-5 gap-2 py-3 overflow-y-auto max-h-[45vh] pr-1">
+                {processedQuestions.map((item, idx) => {
+                  const isAnswered = !!selectedAnswers[item.question.id];
+                  const isCurrent = idx === activeQuestionIndex;
+                  return (
+                    <button
+                      key={item.question.id}
+                      onClick={() => {
+                        setActiveQuestionIndex(idx);
+                        setShowMobilePalette(false);
+                      }}
+                      className={`h-11 rounded-xl font-bold text-sm flex items-center justify-center transition-all ${
+                        isCurrent
+                          ? 'ring-2 ring-indigo-600 ring-offset-2 bg-indigo-600 text-white font-extrabold shadow-sm'
+                          : isAnswered
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex gap-2 mt-auto">
+                <button
+                  onClick={() => setShowMobilePalette(false)}
+                  className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobilePalette(false);
+                    handleSubmit();
+                  }}
+                  className="w-1/2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all active:scale-95"
+                >
+                  Submit Quiz
                 </button>
               </div>
             </motion.div>
